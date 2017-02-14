@@ -18,6 +18,9 @@ public class Peer {
     //Config file data is stored here.
     private static ConcurrentHashMap<Integer, String> configFileData;
 
+    //Static Counter for Sequence Number in Message ID
+    private static Integer sequenceNumber = 0;
+
     public static void main(String[] args) {
 
     }
