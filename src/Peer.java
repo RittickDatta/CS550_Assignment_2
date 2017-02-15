@@ -92,6 +92,19 @@ public class Peer {
         return fileNames;
     }
 
+    private static boolean searchPeerFiles(String fileName){
+        boolean flag = false;
+
+        for(int i=0; i<myFiles.size(); i++){
+            if(myFiles.get(i).equals(fileName)){
+                flag = true;
+                return flag;
+            }
+        }
+
+        return flag;
+    }
+
     private static class Server extends Thread{
         private String ID_SERVER;
         private String IP_SERVER;
