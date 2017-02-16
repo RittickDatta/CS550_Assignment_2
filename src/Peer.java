@@ -39,19 +39,19 @@ public class Peer {
         System.out.println("Enter Peer ID number: (1,2,3,4) ");
         try {
             peerID = userInput.readLine();
-        }catch (IOException e){
+        } catch (IOException e) {
             System.out.println("Exception while getting peer ID from user.");
         }
 
         //-----Getting IP Address, Port, Number of peers and Neighbors of each peer.
         configFileData = ReadConfigFile.readFile("network_linear.config");
 
-        for(Integer key : configFileData.keySet()){
+        for (Integer key : configFileData.keySet()) {
             if (key == Integer.parseInt(peerID)) {
                 // GET NEIGHBORS
                 String[] split = configFileData.get(key).split(":");
                 String[] neighbors = split[2].split("-");
-                for (int i = 0; i< neighbors.length; i++){
+                for (int i = 0; i < neighbors.length; i++) {
                     peerNeighbors.add(Integer.parseInt(neighbors[i]));
                 }
 
@@ -64,16 +64,16 @@ public class Peer {
         NUMBER_OF_PEERS = configFileData.keySet().size();
 
         //---------Peer ID to IP & Port---------
-        for(Integer key : configFileData.keySet()){
+        for (Integer key : configFileData.keySet()) {
             String[] split = configFileData.get(key).split(":");
-            peerIdtoIPAndPort.put(key, split[0]+":"+split[1]);
+            peerIdtoIPAndPort.put(key, split[0] + ":" + split[1]);
         }
 
         //-------Preparing list of files belonging to this peer--------------
-        myFiles = getFileData("Node"+peerID+"/Myfiles");
+        myFiles = getFileData("Node" + peerID + "/Myfiles");
 
         //----------Starting Peer Server---------------------------
-        try{
+        try {
             ServerSocket peerServer = new ServerSocket(PORT);
             System.out.println("Peer Server is listening...");
 
@@ -81,11 +81,11 @@ public class Peer {
             new Client(peerID, IP, PORT, NUMBER_OF_PEERS, peerNeighbors, peerIdtoIPAndPort).start();
             System.out.println("Peer Client is running...");
 
-            while (true){
+            while (true) {
                 Socket newConnection = peerServer.accept();
                 new Server(peerID, IP, PORT, NUMBER_OF_PEERS, peerNeighbors, newConnection, peerIdtoIPAndPort).start();
             }
-        }  catch (IOException e){
+        } catch (IOException e) {
             System.out.println("IOException in main method.");
         }
     }
@@ -95,18 +95,18 @@ public class Peer {
 
         File file = new File(path);
         String[] files = file.list();
-        for (int i = 0; i<files.length; i++){
+        for (int i = 0; i < files.length; i++) {
             fileNames.add(files[i]);
         }
 
         return fileNames;
     }
 
-    private static boolean searchPeerFiles(String fileName){
+    private static boolean searchPeerFiles(String fileName) {
         boolean flag = false;
 
-        for(int i=0; i<myFiles.size(); i++){
-            if(myFiles.get(i).equals(fileName)){
+        for (int i = 0; i < myFiles.size(); i++) {
+            if (myFiles.get(i).equals(fileName)) {
                 flag = true;
                 return flag;
             }
@@ -115,7 +115,7 @@ public class Peer {
         return flag;
     }
 
-    private static class Server extends Thread{
+    private static class Server extends Thread {
         private String ID_SERVER;
         private String IP_SERVER;
         private Integer PORT_SERVER;
@@ -134,12 +134,28 @@ public class Peer {
             peerIdToIPAndPort_SERVER = peerIdtoIPAndPort;
         }
 
-        public void run(){
+        public void run() {
             System.out.println("In run() of server.");
+
+            OutputStream outputStream = null;
+            ObjectInputStream inputStream;
+
+            try {
+                inputStream = new ObjectInputStream(connection.getInputStream());
+                Query queryObj = (Query) inputStream.readObject(); // <------------ Problem Here
+                System.out.println(queryObj.getType());
+
+            }catch(Exception e){
+                System.out.println("Exception Server");
+            }finally {
+
+            }
+
+
         }
     }
 
-    private static class Client extends Thread{
+    private static class Client extends Thread {
         //----------------------Basic Information for Client
         private String ID_CLIENT;
         private String IP_CLIENT;
@@ -169,7 +185,7 @@ public class Peer {
             peerIdToIPAndPort_CLIENT = peerIdtoIPAndPort;
         }
 
-        public void run(){
+        public void run() {
             sockets = new Socket[myNeighbors_CLIENT.size()];
             keyboardInput = new BufferedReader(new InputStreamReader(System.in));
 
@@ -183,11 +199,35 @@ public class Peer {
             }
 
             Query query = new Query(new MessageID(peerID, ++sequenceNumber), 3, fileName);
-            System.out.println(query.getMessageID().getSequenceNumber());
+            //showQueryData(query);
 
+            try {
+
+
+                sockets[0] = new Socket("127.0.0.1", 3002);
+
+                outputStream = new ObjectOutputStream(sockets[0].getOutputStream());
+                outputStream.flush();
+                outputStream.writeObject(query);
+                outputStream.flush();
+
+                //inputStream = new ObjectInputStream(sockets[0].getInputStream());
+
+            }catch(Exception e){
+
+            }finally {
+
+            }
+        }
+
+        private static void showQueryData(Query query) {
+            System.out.println(query.getType());
+            System.out.println(query.getMessageID().getPeerID());
+            System.out.println(query.getMessageID().getSequenceNumber());
+            System.out.println(query.getTTL());
+            System.out.println(query.getFileName());
         }
     }
-
 
 
 }

@@ -1,7 +1,9 @@
+import java.io.Serializable;
+
 /**
  * Created by rittick on 2/15/17.
  */
-public class MessageID {
+public class MessageID implements Serializable{
     private String peerID;
     private Integer sequenceNumber;
 

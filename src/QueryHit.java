@@ -1,7 +1,10 @@
+import java.io.Serializable;
+
 /**
  * Created by rittick on 2/15/17.
  */
-public class QueryHit {
+public class QueryHit implements Serializable{
+    private String type = "queryHit";
     private MessageID messageID;
     private Integer TTL;
     private String fileName;
@@ -15,6 +18,8 @@ public class QueryHit {
         this.peerIP = peerIP;
         this.port = port;
     }
+
+    public String getType() { return type; }
 
     public MessageID getMessageID() {
         return messageID;
@@ -36,8 +41,8 @@ public class QueryHit {
         return port;
     }
 
-    public void setTTL(Integer TTL) {
-        this.TTL = TTL - 1; //CHECK
+    public void setTTL() {
+        this.TTL = this.TTL - 1; //CHECK
     }
 
     public void setPeerIP(String peerIP) {

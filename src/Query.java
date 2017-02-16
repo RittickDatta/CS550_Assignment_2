@@ -1,7 +1,10 @@
+import java.io.Serializable;
+
 /**
  * Created by rittick on 2/15/17.
  */
-public class Query {
+public class Query implements Serializable {
+    private String type = "query";
     private MessageID messageID;
     private Integer TTL;
     private String fileName;
@@ -11,6 +14,8 @@ public class Query {
         this.TTL = TTL;
         this.fileName = fileName;
     }
+
+    public String getType() { return type; }
 
     public MessageID getMessageID() {
         return messageID;
@@ -24,7 +29,7 @@ public class Query {
         return fileName;
     }
 
-    public void setTTL(Integer TTL) {
-        this.TTL = TTL - 1; //CHECK
+    public void setTTL() {
+        this.TTL = this.TTL - 1; //CHECK
     }
 }
