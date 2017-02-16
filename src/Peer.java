@@ -137,13 +137,25 @@ public class Peer {
         public void run() {
             System.out.println("In run() of server.");
 
-            OutputStream outputStream = null;
+            ObjectOutputStream outputStream = null;
             ObjectInputStream inputStream;
 
             try {
                 inputStream = new ObjectInputStream(connection.getInputStream());
-                Query queryObj = (Query) inputStream.readObject(); // <------------ Problem Here
+                outputStream = new ObjectOutputStream(connection.getOutputStream());
+
+                Query queryObj = (Query) inputStream.readObject();
                 System.out.println(queryObj.getType());
+
+                if(queryObj.getType().equals("query")){
+                    boolean searchResult = searchPeerFiles(queryObj.getFileName());
+                    if(searchResult){
+                        //Create a QueryHit Object
+                        QueryHit queryHit = createQueryHitObject(queryObj);
+                        outputStream.writeObject(queryHit);
+                        outputStream.flush();
+                    }
+                }
 
             }catch(Exception e){
                 System.out.println("Exception Server");
@@ -152,6 +164,14 @@ public class Peer {
             }
 
 
+        }
+
+        private QueryHit createQueryHitObject(Query queryObj) {
+            QueryHit queryHit;
+
+            queryHit = new QueryHit(queryObj.getMessageID(), queryObj.getTTL(), queryObj.getFileName(), IP, PORT);
+
+            return queryHit;
         }
     }
 
@@ -211,7 +231,9 @@ public class Peer {
                 outputStream.writeObject(query);
                 outputStream.flush();
 
-                //inputStream = new ObjectInputStream(sockets[0].getInputStream());
+                inputStream = new ObjectInputStream(sockets[0].getInputStream());
+                QueryHit queryHit = (QueryHit) inputStream.readObject();
+                System.out.println("File Found. IP: "+queryHit.getPeerIP()+" PORT: "+queryHit.getPort());
 
             }catch(Exception e){
 
