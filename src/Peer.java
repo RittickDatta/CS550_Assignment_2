@@ -4,6 +4,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -123,6 +124,8 @@ public class Peer {
         private ArrayList<Integer> myNeighbors_SERVER;
         private Socket connection;
         private ConcurrentHashMap<Integer, String> peerIdToIPAndPort_SERVER;
+        private ConcurrentHashMap<MessageID, UpstreamPeerID> seenQueries = new ConcurrentHashMap<>();
+        private Socket[] sockets;
 
         public Server(String peerID, String ip, Integer port, Integer numberOfPeers, ArrayList<Integer> peerNeighbors, Socket newConnection, ConcurrentHashMap<Integer, String> peerIdtoIPAndPort) {
             ID_SERVER = peerID;
@@ -141,29 +144,93 @@ public class Peer {
             ObjectInputStream inputStream;
 
             try {
-                inputStream = new ObjectInputStream(connection.getInputStream());
+                inputStream = new ObjectInputStream(connection.getInputStream()); //<----same OOS and OIS for different Sockets
                 outputStream = new ObjectOutputStream(connection.getOutputStream());
+                Iterator<Integer> neighborsIterator = myNeighbors_SERVER.iterator();
+                sockets = new Socket[myNeighbors_SERVER.size()];
 
                 Query queryObj = (Query) inputStream.readObject();
                 System.out.println(queryObj.getType());
 
-                if(queryObj.getType().equals("query")){
+                //Add This Peer ID to Forward Path
+                queryObj.setForwardPath(Integer.parseInt(ID_SERVER));
+
+                //Decrease TTL by 1
+                queryObj.setTTL();
+                System.out.println(queryObj.getTTL());
+
+                if (queryObj.getType().equals("query")) {
                     boolean searchResult = searchPeerFiles(queryObj.getFileName());
-                    if(searchResult){
+                    if (searchResult) {
                         //Create a QueryHit Object
                         QueryHit queryHit = createQueryHitObject(queryObj);
                         outputStream.writeObject(queryHit);
                         outputStream.flush();
                     }
+
+                    // Regardless of Hit or Miss, Forward Query to Neighbor if TTL > 0
+                    if (queryObj.getTTL() > 0) {
+
+                        String peerID = queryObj.getMessageID().getPeerID();
+                        Integer seqNum = queryObj.getMessageID().getSequenceNumber();
+                        Boolean msgSeen =  checkIFMsgSeen(peerID, seqNum, seenQueries);
+
+
+                        if (!msgSeen) {
+                            while (neighborsIterator.hasNext()) {
+                                Integer nextNeighbor = neighborsIterator.next();
+                                String ip = peerIdtoIPAndPort.get(nextNeighbor).split(":")[0];
+                                int port = Integer.parseInt(peerIdtoIPAndPort.get(nextNeighbor).split(":")[1]);
+
+                                seenQueries.put(new MessageID(queryObj.getMessageID().getPeerID(),
+                                                queryObj.getMessageID().getSequenceNumber()),
+                                                new UpstreamPeerID(ip, port));
+                                System.out.println("CHECKPOINT");
+
+                                sockets[0] = new Socket(ip, port);
+
+                                if(!queryObj.getForwardPath().contains(nextNeighbor)) {
+
+                                    outputStream = new ObjectOutputStream(sockets[0].getOutputStream()); // Exception, CHECK
+                                    outputStream.flush();
+                                    outputStream.writeObject(queryObj);
+                                    outputStream.flush();
+
+                                    //----READING RESPONSE (QUERYHIT)
+
+                                }
+                            }
+                        }
+
+                    }
                 }
 
-            }catch(Exception e){
+            } catch (Exception e) {
                 System.out.println("Exception Server");
-            }finally {
+            } finally {
 
             }
 
 
+        }
+
+        private Boolean checkIFMsgSeen(String peerID, Integer seqNum, ConcurrentHashMap<MessageID, UpstreamPeerID> seenQueries) {
+            boolean flagForPeer = false;
+            boolean flagForSeqNum = false;
+
+            for(MessageID messageID : seenQueries.keySet()){
+                String peerID1 = messageID.getPeerID();
+                Integer sequenceNumber = messageID.getSequenceNumber();
+
+                if(peerID1 == peerID){ flagForPeer = true; }
+                if(sequenceNumber == seqNum){ flagForSeqNum = true; }
+            }
+
+            if(flagForPeer && flagForSeqNum){
+                return true;
+            }else{
+                return false;
+            }
         }
 
         private QueryHit createQueryHitObject(Query queryObj) {
@@ -218,7 +285,7 @@ public class Peer {
                 System.out.println("IOException while user entering filename to search.");
             }
 
-            Query query = new Query(new MessageID(peerID, ++sequenceNumber), 3, fileName);
+            Query query = new Query(new MessageID(peerID, ++sequenceNumber), 3, fileName, Integer.parseInt(peerID));
             //showQueryData(query);
 
             try {
@@ -233,11 +300,11 @@ public class Peer {
 
                 inputStream = new ObjectInputStream(sockets[0].getInputStream());
                 QueryHit queryHit = (QueryHit) inputStream.readObject();
-                System.out.println("File Found. IP: "+queryHit.getPeerIP()+" PORT: "+queryHit.getPort());
+                System.out.println("File Found. IP: " + queryHit.getPeerIP() + " PORT: " + queryHit.getPort());
 
-            }catch(Exception e){
+            } catch (Exception e) {
 
-            }finally {
+            } finally {
 
             }
         }
