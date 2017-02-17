@@ -35,6 +35,9 @@ public class Peer {
     // List of files of this peer.
     private static ArrayList<String> myFiles = new ArrayList<>();
 
+    //Neighbors to Socket Mappings
+    private static ConcurrentHashMap<Integer, Socket> sockets = new ConcurrentHashMap<>();
+
     public static void main(String[] args) {
         //--------------Getting Peer ID-----------------------------------------
         System.out.println("Enter Peer ID number: (1,2,3,4) ");
@@ -125,7 +128,7 @@ public class Peer {
         private Socket connection;
         private ConcurrentHashMap<Integer, String> peerIdToIPAndPort_SERVER;
         private ConcurrentHashMap<MessageID, UpstreamPeerID> seenQueries = new ConcurrentHashMap<>();
-        private Socket[] sockets;
+
 
         public Server(String peerID, String ip, Integer port, Integer numberOfPeers, ArrayList<Integer> peerNeighbors, Socket newConnection, ConcurrentHashMap<Integer, String> peerIdtoIPAndPort) {
             ID_SERVER = peerID;
@@ -140,69 +143,98 @@ public class Peer {
         public void run() {
             System.out.println("In run() of server.");
 
-            ObjectOutputStream outputStream = null;
+            ObjectOutputStream outputStream;
             ObjectInputStream inputStream;
 
             try {
                 inputStream = new ObjectInputStream(connection.getInputStream()); //<----same OOS and OIS for different Sockets
                 outputStream = new ObjectOutputStream(connection.getOutputStream());
                 Iterator<Integer> neighborsIterator = myNeighbors_SERVER.iterator();
-                sockets = new Socket[myNeighbors_SERVER.size()];
+                //sockets = new Socket[myNeighbors_SERVER.size()];
 
-                Query queryObj = (Query) inputStream.readObject();
-                System.out.println(queryObj.getType());
+                /*Query queryObj = (Query)*/
 
-                //Add This Peer ID to Forward Path
-                queryObj.setForwardPath(Integer.parseInt(ID_SERVER));
+                Object o = inputStream.readObject();
 
-                //Decrease TTL by 1
-                queryObj.setTTL();
-                System.out.println(queryObj.getTTL());
-
-                if (queryObj.getType().equals("query")) {
-                    boolean searchResult = searchPeerFiles(queryObj.getFileName());
-                    if (searchResult) {
-                        //Create a QueryHit Object
-                        QueryHit queryHit = createQueryHitObject(queryObj);
-                        outputStream.writeObject(queryHit);
-                        outputStream.flush();
-                    }
-
-                    // Regardless of Hit or Miss, Forward Query to Neighbor if TTL > 0
-                    if (queryObj.getTTL() > 0) {
-
-                        String peerID = queryObj.getMessageID().getPeerID();
-                        Integer seqNum = queryObj.getMessageID().getSequenceNumber();
-                        Boolean msgSeen =  checkIFMsgSeen(peerID, seqNum, seenQueries);
+                Query queryObj = null;
+                if (o instanceof Query) {
+                    queryObj = (Query) o;
+                    System.out.println(queryObj.getType());
 
 
-                        if (!msgSeen) {
-                            while (neighborsIterator.hasNext()) {
-                                Integer nextNeighbor = neighborsIterator.next();
-                                String ip = peerIdtoIPAndPort.get(nextNeighbor).split(":")[0];
-                                int port = Integer.parseInt(peerIdtoIPAndPort.get(nextNeighbor).split(":")[1]);
+                    //Add This Peer ID to Forward Path
+                    queryObj.setForwardPath(Integer.parseInt(ID_SERVER));
 
-                                seenQueries.put(new MessageID(queryObj.getMessageID().getPeerID(),
-                                                queryObj.getMessageID().getSequenceNumber()),
-                                                new UpstreamPeerID(ip, port));
-                                System.out.println("CHECKPOINT");
+                    //Decrease TTL by 1
+                    queryObj.setTTL();
+                    System.out.println(queryObj.getTTL());
 
-                                sockets[0] = new Socket(ip, port);
-
-                                if(!queryObj.getForwardPath().contains(nextNeighbor)) {
-
-                                    outputStream = new ObjectOutputStream(sockets[0].getOutputStream()); // Exception, CHECK
-                                    outputStream.flush();
-                                    outputStream.writeObject(queryObj);
-                                    outputStream.flush();
-
-                                    //----READING RESPONSE (QUERYHIT)
-
-                                }
-                            }
+                    if (queryObj.getType().equals("query")) {
+                        boolean searchResult = searchPeerFiles(queryObj.getFileName());
+                        if (searchResult) {
+                            //Create a QueryHit Object
+                            QueryHit queryHit = createQueryHitObject(queryObj);
+                            sendReply(outputStream, queryHit);
+                        } else {
+                            System.out.println("Peer does not contain file.");
                         }
 
+                        // Regardless of Hit or Miss, Forward Query to Neighbor if TTL > 0
+                        if (queryObj.getTTL() > 0) {
+
+                            String peerID = queryObj.getMessageID().getPeerID();
+                            Integer seqNum = queryObj.getMessageID().getSequenceNumber();
+                            Boolean msgSeen = checkIFMsgSeen(peerID, seqNum, seenQueries);
+
+
+                            if (!msgSeen) {
+                                while (neighborsIterator.hasNext()) {
+                                    Integer nextNeighbor = neighborsIterator.next();
+                                    String ip = peerIdtoIPAndPort.get(nextNeighbor).split(":")[0];
+                                    int port = Integer.parseInt(peerIdtoIPAndPort.get(nextNeighbor).split(":")[1]);
+
+                                    seenQueries.put(new MessageID(queryObj.getMessageID().getPeerID(),
+                                                    queryObj.getMessageID().getSequenceNumber()),
+                                            new UpstreamPeerID(ip, port));
+                                    System.out.println("CHECKPOINT");
+
+                                    sockets.put(nextNeighbor, new Socket(ip, port));
+
+                                    if (!queryObj.getForwardPath().contains(nextNeighbor)) {
+
+                                        outputStream = new ObjectOutputStream(sockets.get(nextNeighbor).getOutputStream()); // Exception, CHECK
+                                        outputStream.flush();
+                                        outputStream.writeObject(queryObj);
+                                        outputStream.flush();
+
+                                        //----READING RESPONSE (QUERYHIT)
+                                        inputStream = new ObjectInputStream(sockets.get(nextNeighbor).getInputStream());
+                                        QueryHit queryHit = (QueryHit) inputStream.readObject();
+
+                                        if (queryHit.getMessageID().getPeerID() != ID_SERVER) {
+                                            Integer backwardPath = queryHit.getBackwardPath();
+                                            Socket socket = sockets.get(backwardPath);
+                                            outputStream = new ObjectOutputStream(socket.getOutputStream());
+                                            outputStream.flush();
+                                            outputStream.writeObject(queryHit);
+                                            outputStream.flush();
+                                        }
+
+                                        System.out.println("File Found. IP: " + queryHit.getPeerIP() + " PORT: " + queryHit.getPort());
+
+                                    }
+                                }
+                            }
+
+                        }
                     }
+                }
+
+                QueryHit queryHitObj = null; // Working...
+                if (o instanceof QueryHit) {
+                    queryHitObj = (QueryHit) o;
+                    System.out.println(queryHitObj.getType());
+                    System.out.println("File Found. IP: " + queryHitObj.getPeerIP() + " PORT: " + queryHitObj.getPort());
                 }
 
             } catch (Exception e) {
@@ -212,6 +244,11 @@ public class Peer {
             }
 
 
+        }
+
+        private static void sendReply(ObjectOutputStream outputStream, QueryHit queryHit) throws IOException {
+            outputStream.writeObject(queryHit);
+            outputStream.flush();
         }
 
         private Boolean checkIFMsgSeen(String peerID, Integer seqNum, ConcurrentHashMap<MessageID, UpstreamPeerID> seenQueries) {
@@ -236,7 +273,7 @@ public class Peer {
         private QueryHit createQueryHitObject(Query queryObj) {
             QueryHit queryHit;
 
-            queryHit = new QueryHit(queryObj.getMessageID(), queryObj.getTTL(), queryObj.getFileName(), IP, PORT);
+            queryHit = new QueryHit(queryObj.getMessageID(), queryObj.getTTL(), queryObj.getFileName(), IP, PORT, queryObj.getForwardPath());
 
             return queryHit;
         }

@@ -1,22 +1,26 @@
 import java.io.Serializable;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 
 /**
  * Created by rittick on 2/15/17.
  */
-public class QueryHit implements Serializable{
+public class QueryHit implements Serializable {
     private String type = "queryHit";
     private MessageID messageID;
     private Integer TTL;
     private String fileName;
     private String peerIP;
     private Integer port;
+    private ArrayList<Integer> backwardPath = new ArrayList<>();
 
-    public QueryHit(MessageID messageID, Integer TTL, String fileName, String peerIP, Integer port) {
+    public QueryHit(MessageID messageID, Integer TTL, String fileName, String peerIP, Integer port, ArrayList<Integer> backwardPath) {
         this.messageID = messageID;
         this.TTL = TTL;
         this.fileName = fileName;
         this.peerIP = peerIP;
         this.port = port;
+        this.backwardPath = backwardPath;
     }
 
     public String getType() { return type; }
@@ -51,5 +55,11 @@ public class QueryHit implements Serializable{
 
     public void setPort(Integer port) {
         this.port = port;
+    }
+
+    public Integer getBackwardPath() {
+        this.backwardPath.remove(this.backwardPath.size()-1);
+        this.backwardPath.remove(this.backwardPath.size()-1); // CHECK
+        return this.backwardPath.get(this.backwardPath.size()-1);
     }
 }
