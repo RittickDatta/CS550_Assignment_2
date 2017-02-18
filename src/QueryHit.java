@@ -1,6 +1,7 @@
 import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Collections;
 
 /**
  * Created by rittick on 2/15/17.
@@ -58,6 +59,15 @@ public class QueryHit implements Serializable {
     }
 
     public Integer getBackwardPath() {
+
+        Integer max = Collections.max(this.backwardPath);
+        int indexOfMax = this.backwardPath.indexOf(max);
+        if(indexOfMax != this.backwardPath.size()-1){
+            //Collections.reverse(this.backwardPath);
+            this.backwardPath.remove(0);
+            return this.backwardPath.get(0);
+        }
+
         this.backwardPath.remove(this.backwardPath.size() - 1);
         this.backwardPath.remove(this.backwardPath.size()-1); // CHECK
         return this.backwardPath.get(this.backwardPath.size()-1);
