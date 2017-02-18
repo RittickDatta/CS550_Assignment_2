@@ -173,9 +173,12 @@ public class Peer {
                         boolean searchResult = searchPeerFiles(queryObj.getFileName());
                         if (searchResult) {
                             //Create a QueryHit Object
+                            System.out.println("Peer "+ID_SERVER+" Contains File.");
                             QueryHit queryHit = createQueryHitObject(queryObj);
                             sendReply(outputStream, queryHit);
                         } else {
+                            outputStream.writeObject("Peer"+ID_SERVER+" Does Not Contain File.");
+                            outputStream.flush();
                             System.out.println("Peer does not contain file.");
                         }
 
@@ -208,7 +211,7 @@ public class Peer {
                                         outputStream.flush();
 
                                         //----READING RESPONSE (QUERYHIT)
-                                        inputStream = new ObjectInputStream(sockets.get(nextNeighbor).getInputStream());
+                                        inputStream = new ObjectInputStream(sockets.get(nextNeighbor).getInputStream()); // CHECk HERE ARRAY INDEX OUT OF BOUND
                                         QueryHit queryHit = (QueryHit) inputStream.readObject();
 
                                         if (queryHit.getMessageID().getPeerID() != ID_SERVER) {
@@ -230,11 +233,26 @@ public class Peer {
                     }
                 }
 
-                QueryHit queryHitObj = null; // Working...
+                QueryHit queryHitObj; // Working...
                 if (o instanceof QueryHit) {
                     queryHitObj = (QueryHit) o;
                     System.out.println(queryHitObj.getType());
-                    System.out.println("File Found. IP: " + queryHitObj.getPeerIP() + " PORT: " + queryHitObj.getPort());
+                    System.out.println("File Found @ IP: " + queryHitObj.getPeerIP() + " PORT: " + queryHitObj.getPort());
+
+                    //Send Backward to Requesting Peer
+                    if (queryHitObj.getMessageID().getPeerID() != ID_SERVER) {
+                        Integer backwardPath = queryHitObj.getBackwardPath();
+                        Socket socket = sockets.get(backwardPath);
+                        outputStream = new ObjectOutputStream(socket.getOutputStream());
+                        outputStream.flush();
+                        outputStream.writeObject(queryHitObj);
+                        outputStream.flush();
+                    }
+                }
+
+                if(o instanceof String){
+                    String message = (String) o;
+                    System.out.println(message);
                 }
 
             } catch (Exception e) {
@@ -273,8 +291,8 @@ public class Peer {
         private QueryHit createQueryHitObject(Query queryObj) {
             QueryHit queryHit;
 
-            queryHit = new QueryHit(queryObj.getMessageID(), queryObj.getTTL(), queryObj.getFileName(), IP, PORT, queryObj.getForwardPath());
-
+            queryHit = new QueryHit(queryObj.getMessageID(), 3/*queryObj.getTTL()*/, queryObj.getFileName(), IP, PORT, queryObj.getForwardPath());
+            System.out.println("Forward Path"+queryObj.getForwardPath());
             return queryHit;
         }
     }
@@ -322,22 +340,98 @@ public class Peer {
                 System.out.println("IOException while user entering filename to search.");
             }
 
-            Query query = new Query(new MessageID(peerID, ++sequenceNumber), 3, fileName, Integer.parseInt(peerID));
+            Query query = new Query(new MessageID(peerID, ++sequenceNumber), 2, fileName, Integer.parseInt(peerID));
             //showQueryData(query);
 
             try {
+                for(int i=0; i<sockets.length; i++){
+                    String IPAndPort = peerIdToIPAndPort_CLIENT.get(myNeighbors_CLIENT.get(i));
+                    String ip = IPAndPort.split(":")[0];
+                    int port = Integer.parseInt(IPAndPort.split(":")[1]);
+                    sockets[i] = new Socket(ip, port);
+                }
 
+                //sockets[0] = new Socket("127.0.0.1", 3003);
 
-                sockets[0] = new Socket("127.0.0.1", 3002);
+                if (sockets[0] != null) {
+                    outputStream = new ObjectOutputStream(sockets[0].getOutputStream());
+                    outputStream.flush();
+                    outputStream.writeObject(query);
+                    outputStream.flush();
 
-                outputStream = new ObjectOutputStream(sockets[0].getOutputStream());
-                outputStream.flush();
-                outputStream.writeObject(query);
-                outputStream.flush();
+                    inputStream = new ObjectInputStream(sockets[0].getInputStream());
+                    /*QueryHit queryHit = (QueryHit)*/
+                    Object o = inputStream.readObject();
+                    if(o instanceof QueryHit) {
+                        QueryHit queryHit = (QueryHit) o;
+                        System.out.println("File Found. IP: " + this.queryHit.getPeerIP() + " PORT: " + this.queryHit.getPort());
+                    }
 
-                inputStream = new ObjectInputStream(sockets[0].getInputStream());
-                QueryHit queryHit = (QueryHit) inputStream.readObject();
-                System.out.println("File Found. IP: " + queryHit.getPeerIP() + " PORT: " + queryHit.getPort());
+                    if(o instanceof String){
+                        String message = (String) o;
+                        System.out.println(message);
+                    }
+                }
+
+                if (sockets[1] != null) {
+                    outputStream = new ObjectOutputStream(sockets[1].getOutputStream());
+                    outputStream.flush();
+                    outputStream.writeObject(query);
+                    outputStream.flush();
+
+                    inputStream = new ObjectInputStream(sockets[1].getInputStream());
+                    /*QueryHit queryHit = (QueryHit)*/
+                    Object o = inputStream.readObject();
+                    if(o instanceof QueryHit) {
+                        QueryHit queryHit = (QueryHit) o;
+                        System.out.println("File Found. IP: " + this.queryHit.getPeerIP() + " PORT: " + this.queryHit.getPort());
+                    }
+
+                    if(o instanceof String){
+                        String message = (String) o;
+                        System.out.println(message);
+                    }
+                }
+
+                if (sockets[2] != null) {
+                    outputStream = new ObjectOutputStream(sockets[2].getOutputStream());
+                    outputStream.flush();
+                    outputStream.writeObject(query);
+                    outputStream.flush();
+
+                    inputStream = new ObjectInputStream(sockets[2].getInputStream());
+                    /*QueryHit queryHit = (QueryHit)*/
+                    Object o = inputStream.readObject();
+                    if(o instanceof QueryHit) {
+                        QueryHit queryHit = (QueryHit) o;
+                        System.out.println("File Found. IP: " + this.queryHit.getPeerIP() + " PORT: " + this.queryHit.getPort());
+                    }
+
+                    if(o instanceof String){
+                        String message = (String) o;
+                        System.out.println(message);
+                    }
+                }
+
+                if (sockets[3] != null) {
+                    outputStream = new ObjectOutputStream(sockets[3].getOutputStream());
+                    outputStream.flush();
+                    outputStream.writeObject(query);
+                    outputStream.flush();
+
+                    inputStream = new ObjectInputStream(sockets[3].getInputStream());
+                    /*QueryHit queryHit = (QueryHit)*/
+                    Object o = inputStream.readObject();
+                    if(o instanceof QueryHit) {
+                        QueryHit queryHit = (QueryHit) o;
+                        System.out.println("File Found. IP: " + this.queryHit.getPeerIP() + " PORT: " + this.queryHit.getPort());
+                    }
+
+                    if(o instanceof String){
+                        String message = (String) o;
+                        System.out.println(message);
+                    }
+                }
 
             } catch (Exception e) {
 

@@ -58,8 +58,9 @@ public class QueryHit implements Serializable {
     }
 
     public Integer getBackwardPath() {
-        this.backwardPath.remove(this.backwardPath.size()-1);
+        this.backwardPath.remove(this.backwardPath.size() - 1);
         this.backwardPath.remove(this.backwardPath.size()-1); // CHECK
         return this.backwardPath.get(this.backwardPath.size()-1);
+
     }
 }
