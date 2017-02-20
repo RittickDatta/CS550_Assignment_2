@@ -242,7 +242,7 @@ public class Peer_New {
                                 System.out.println(queryHitObject.getSearchResults());
                             }
                         }
-                        if (Boolean.TRUE.equals(neighborsFlag)){
+                        if (this.ID_SERVER.equals("1")  &&    Boolean.TRUE.equals(neighborsFlag)){
                             {
                                 QueryHit_New queryHitObject = createQueryHitObject(queryObj);
 
@@ -296,9 +296,17 @@ public class Peer_New {
                     }
                     else {
                         System.out.println(queryHitObj.getSearchResults());
-                        outputStream = new ObjectOutputStream(homeConnection.getOutputStream());
+                        try {
+                            outputStream = new ObjectOutputStream(homeConnection.getOutputStream());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                         outputStream.flush();
-                        outputStream.writeObject(queryHitObj);
+                        try {
+                            outputStream.writeObject(queryHitObj);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                         outputStream.flush();
                     }
                 }
@@ -411,16 +419,12 @@ public class Peer_New {
                             outputStream.flush();
 
                             /*QueryHit queryHit = (QueryHit)*/
-                            Object o = inputStream.readObject();
+                           /* Object o = inputStream.readObject();
                             if (o instanceof QueryHit_New) {
                                 QueryHit_New queryHit = (QueryHit_New) o;
                                 System.out.println("File Found Search Result: "+queryHit.getSearchResults());
-                            }
+                            }*/
 
-                            if (o instanceof String) {
-                                String message = (String) o;
-                                System.out.println(message);
-                            }
                         }
                     }
 
