@@ -194,24 +194,30 @@ public class Peer_New {
 
                                     sockets.put(nextNeighbor, new Socket(ip, port));
 
-                                    if (!queryObj.getForwardPath().contains(nextNeighbor)) {
+                                    if (!queryObj.getForwardPath().contains(nextNeighbor) /*|| queryObj.getForwardPath().contains(queryObj.getMessageID().getPeerID())*/) {
 
                                         outputStream = new ObjectOutputStream(sockets.get(nextNeighbor).getOutputStream()); // Exception, CHECK
                                         outputStream.flush();
                                         outputStream.writeObject(queryObj);
                                         outputStream.flush();
 
-                                    }else{
+                                    }/*else if(queryObj.getMessageID().getPeerID().equals(nextNeighbor.toString())){
+                                        outputStream = new ObjectOutputStream(sockets.get(nextNeighbor).getOutputStream()); // Exception, CHECK
+                                        outputStream.flush();
+                                        outputStream.writeObject(queryObj);
+                                        outputStream.flush();
+                                    }*/
+                                    else{
                                         neighborsFlag = true;
                                     }
                                 }
                             }
 
-                        } else if ((queryObj.getTTL() == 0) || neighborsFlag){
+                        } else if ((queryObj.getTTL() == 0) || Boolean.TRUE.equals(neighborsFlag)){
                             QueryHit_New queryHitObject = createQueryHitObject(queryObj);
 
 
-                            if (queryHitObject.getMessageID().getPeerID() != ID_SERVER) {
+                            if (!queryHitObject.getMessageID().getPeerID().equals(ID_SERVER)) {
                                 try {
                                     Integer backwardPath = queryHitObject.getBackwardPath(); // ------EXCEPTION HERE--------
 
