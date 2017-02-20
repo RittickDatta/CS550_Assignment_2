@@ -242,7 +242,7 @@ public class Peer_New {
                                 System.out.println(queryHitObject.getSearchResults());
                             }
                         }
-                        if (this.ID_SERVER.equals("1")  &&    Boolean.TRUE.equals(neighborsFlag)){
+                        if ((this.ID_SERVER.equals("1")  &&    Boolean.TRUE.equals(neighborsFlag))||this.ID_SERVER.equals("4")  &&    Boolean.TRUE.equals(neighborsFlag)){
                             {
                                 QueryHit_New queryHitObject = createQueryHitObject(queryObj);
 
