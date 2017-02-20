@@ -124,6 +124,7 @@ public class Peer_New {
         private Integer numberOfPeers_SERVER;
         private ArrayList<Integer> myNeighbors_SERVER;
         private Socket connection;
+        private Socket homeConnection;
         private ConcurrentHashMap<Integer, String> peerIdToIPAndPort_SERVER;
         private ConcurrentHashMap<MessageID, UpstreamPeerID> seenQueries = new ConcurrentHashMap<>();
         private Boolean neighborsFlag = false;
@@ -144,10 +145,13 @@ public class Peer_New {
 
             ObjectOutputStream outputStream;
             ObjectInputStream inputStream;
+            ObjectOutputStream peerOutputStream;
 
             try {
                 inputStream = new ObjectInputStream(connection.getInputStream()); //<----same OOS and OIS for different Sockets
                 outputStream = new ObjectOutputStream(connection.getOutputStream());
+                //peerOutputStream = new ObjectOutputStream(connection.getOutputStream());
+                homeConnection = connection;
                 Iterator<Integer> neighborsIterator = myNeighbors_SERVER.iterator();
 
                 Object o = inputStream.readObject();
@@ -194,7 +198,7 @@ public class Peer_New {
 
                                     sockets.put(nextNeighbor, new Socket(ip, port));
 
-                                    if (!queryObj.getForwardPath().contains(nextNeighbor) /*|| queryObj.getForwardPath().contains(queryObj.getMessageID().getPeerID())*/) {
+                                    if (!queryObj.getForwardPath().contains(nextNeighbor)) {
 
                                         outputStream = new ObjectOutputStream(sockets.get(nextNeighbor).getOutputStream()); // Exception, CHECK
                                         outputStream.flush();
@@ -213,7 +217,7 @@ public class Peer_New {
                                 }
                             }
 
-                        } else if ((queryObj.getTTL() == 0) || Boolean.TRUE.equals(neighborsFlag)){
+                        } else if ((queryObj.getTTL() == 0) ){
                             QueryHit_New queryHitObject = createQueryHitObject(queryObj);
 
 
@@ -238,6 +242,34 @@ public class Peer_New {
                                 System.out.println(queryHitObject.getSearchResults());
                             }
                         }
+                        if (Boolean.TRUE.equals(neighborsFlag)){
+                            {
+                                QueryHit_New queryHitObject = createQueryHitObject(queryObj);
+
+
+                                if (!queryHitObject.getMessageID().getPeerID().equals(ID_SERVER)) {
+                                    try {
+                                        Integer backwardPath = queryHitObject.getBackwardPath(); // ------EXCEPTION HERE--------
+
+                                        Socket socket = sockets.get(backwardPath);
+                                        if(socket == null){
+                                            socket = new Socket(peerIdToIPAndPort_SERVER.get(backwardPath).split(":")[0],
+                                                    Integer.parseInt(peerIdToIPAndPort_SERVER.get(backwardPath).split(":")[1]));
+                                        }
+                                        outputStream = new ObjectOutputStream(socket.getOutputStream());
+                                        outputStream.flush();
+                                        outputStream.writeObject(queryHitObject);
+                                        outputStream.flush();
+                                    } catch (IOException e) {
+                                        System.out.println("In Query Hit Section of Server.");
+                                    }
+                                }
+                                else {
+                                    System.out.println(queryHitObject.getSearchResults());
+                                }
+                            }
+                        }
+
                     }
                 }
 
@@ -264,6 +296,10 @@ public class Peer_New {
                     }
                     else {
                         System.out.println(queryHitObj.getSearchResults());
+                        outputStream = new ObjectOutputStream(homeConnection.getOutputStream());
+                        outputStream.flush();
+                        outputStream.writeObject(queryHitObj);
+                        outputStream.flush();
                     }
                 }
 
@@ -368,16 +404,17 @@ public class Peer_New {
                     for (int i = 0; i < sockets.length; i++) {
                         if (sockets[i] != null) {
                             outputStream = new ObjectOutputStream(sockets[i].getOutputStream());
+                            inputStream = new ObjectInputStream(sockets[i].getInputStream());
+
                             outputStream.flush();
                             outputStream.writeObject(query);
                             outputStream.flush();
 
-                            inputStream = new ObjectInputStream(sockets[i].getInputStream());
                             /*QueryHit queryHit = (QueryHit)*/
                             Object o = inputStream.readObject();
-                            if (o instanceof QueryHit) {
-                                QueryHit queryHit = (QueryHit) o;
-                                System.out.println("File Found. IP: " + this.queryHit.getPeerIP() + " PORT: " + this.queryHit.getPort());
+                            if (o instanceof QueryHit_New) {
+                                QueryHit_New queryHit = (QueryHit_New) o;
+                                System.out.println("File Found Search Result: "+queryHit.getSearchResults());
                             }
 
                             if (o instanceof String) {
