@@ -1,3 +1,5 @@
+import jdk.internal.util.xml.impl.Input;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -146,6 +148,7 @@ public class Peer_New {
             ObjectOutputStream outputStream;
             ObjectInputStream inputStream;
             ObjectOutputStream peerOutputStream;
+            BufferedReader userInput2;
 
             try {
                 inputStream = new ObjectInputStream(connection.getInputStream()); //<----same OOS and OIS for different Sockets
@@ -295,8 +298,80 @@ public class Peer_New {
                         }
                     }
                     else {
+                        //-------------------Search Result and Download---------------------------
+
                         System.out.println(queryHitObj.getSearchResults());
-                        try {
+                        ArrayList<String> searchResults = queryHitObj.getSearchResults();
+
+                        System.out.println("--------------Distributed Search Result--------------");
+                        for(int i=0; i<searchResults.size(); i++){
+                            String option = searchResults.get(i);
+                            String[] split = option.split(":");
+                            String ip = split[0];
+                            String port = split[1];
+                            String peerID = port.substring(port.length()-1);
+
+                            System.out.println("Peer ID: "+peerID+" IP: "+ip+" PORT#: "+port);
+                        }
+
+
+                        userInput2 = new BufferedReader(new InputStreamReader(System.in));
+
+                        System.out.println("Do you want to download file?");
+                        String userChoice = userInput2.readLine();
+
+                        if(userChoice.equals("y")){
+                            System.out.println("Please enter PORT NUMBER from above list:");
+                            String userSelection = userInput2.readLine();
+                            String ip = "127.0.0.1";
+                            String port = userSelection;
+                            String fullFilePath = "Node"+port.substring(port.length()-1)+"/Myfiles/"+queryHitObj.getFileName();
+                            System.out.println(ip+" "+port+" "+fullFilePath);//TODO
+
+                            Download_Request downloadRequest;
+                            downloadRequest = new Download_Request(fullFilePath, queryHitObj.getFileName()); //TODO
+
+
+                            System.out.println("Contacting Peer To Download File...");
+                            Socket socketForPeer = new Socket(ip, Integer.parseInt(port));
+                            outputStream = new ObjectOutputStream(socketForPeer.getOutputStream());
+                            outputStream.writeObject(downloadRequest);
+                            outputStream.flush();
+
+                            BufferedReader socketPeerInput = new BufferedReader(new InputStreamReader(socketForPeer.getInputStream()));
+
+                            byte[] byteArray = new byte[1];
+                            int bytesRead;
+                            InputStream input;
+                            input = socketForPeer.getInputStream();
+                            ByteArrayOutputStream byteOutputStream;
+                            byteOutputStream = new ByteArrayOutputStream();
+
+                            if (input != null) {
+
+                                BufferedOutputStream bufferedOStream = null;
+                                try {
+
+                                    bufferedOStream = new BufferedOutputStream(new FileOutputStream("Node"+peerID+"/Downloads/"+queryHitObj.getFileName()));
+                                    bytesRead = input.read(byteArray, 0, byteArray.length);//TODO
+
+                                    do {
+                                        byteOutputStream.write(byteArray, 0, byteArray.length);
+                                        bytesRead = input.read(byteArray);
+                                    } while (bytesRead != -1);
+
+                                    bufferedOStream.write(byteOutputStream.toByteArray());
+                                    bufferedOStream.flush();
+
+                                }catch (IOException e){
+
+                                }
+
+                            }
+
+                        }
+
+                        /*try {
                             outputStream = new ObjectOutputStream(homeConnection.getOutputStream());
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -307,8 +382,17 @@ public class Peer_New {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                        outputStream.flush();
+                        outputStream.flush();*/
                     }
+                }
+
+                Download_Request download_request;
+                if(o instanceof Download_Request){
+                    download_request = (Download_Request)o;
+
+                    BufferedOutputStream outputStream1 = new BufferedOutputStream(connection.getOutputStream());
+
+                    obtain(outputStream1, download_request.getFullFilePath());
                 }
 
 
@@ -350,6 +434,55 @@ public class Peer_New {
             System.out.println("Forward Path" + queryObj.getForwardPath());
             return queryHit;
         }
+
+        public void obtain(/*BufferedInputStream InputStream , PrintWriter writerServer,*/ BufferedOutputStream output, String fullFileAddress) {
+            // boolean flag = false;
+
+            try {
+
+                if (output != null) {
+                    //fullFileAddress = fullFileAddress.substring(9);
+                    File file = new File(fullFileAddress);
+                    System.out.println("File Address: "+ fullFileAddress);
+                    byte[] byteArray = new byte[(int) file.length()];
+
+                    FileInputStream fileInputStream = null;
+
+                    try{
+                        fileInputStream = new FileInputStream(file);
+                    }catch (FileNotFoundException e){
+                        System.out.println("File Not Found.");
+                    }
+
+                    BufferedInputStream InputStream = new BufferedInputStream(fileInputStream);
+
+                    try {
+                        InputStream.read(byteArray, 0, byteArray.length);
+                        //System.out.println("Bytes Read : "+byteArray);
+                        output.write(byteArray, 0, byteArray.length);
+                        output.flush();
+                    } catch (IOException e) {
+                        System.out.println("Problem in Reading and Writing File.");
+                    }
+
+
+                    try {
+                        output.close();
+                        connection.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    //writerServer.println("FILE SUCCESSFULLY SENT.");
+                    //writerServer.flush();
+
+                }
+
+            }finally {
+
+            }
+        }
+
     }
 
     private static class Client extends Thread {
@@ -367,8 +500,8 @@ public class Peer_New {
         BufferedReader keyboardInput = null;
         ObjectInputStream inputStream = null;
         ObjectOutputStream outputStream = null;
-        Query query = null;
-        QueryHit queryHit = null;
+        Query_New query = null;
+        QueryHit_New queryHit = null;
 
         //----------Variable for filename to search
         private String fileName = null;
@@ -395,6 +528,8 @@ public class Peer_New {
                 } catch (IOException e) {
                     System.out.println("IOException while user entering filename to search.");
                 }
+
+
 
                 Query_New query = new Query_New(new MessageID(peerID, ++sequenceNumber), 2, fileName, Integer.parseInt(peerID));
                 //showQueryData(query);
@@ -433,35 +568,35 @@ public class Peer_New {
                     System.out.println("Exception in TRY/CATCH, 355");
                 } finally {
 
-                    if (keyboardInput != null) {
+                    /*if (keyboardInput != null) {
                         try {
                             keyboardInput.close();
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                    }
+                    }*/
 
-                    if (outputStream != null) {
+                   /* if (outputStream != null) {
                         try {
                             outputStream.close();
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                    }
+                    }*/
 
-                    if (inputStream != null) {
+                    /*if (inputStream != null) {
                         try {
                             inputStream.close();
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                    }
+                    }*/
 
                 }
             }
         }
 
-        private static void showQueryData(Query query) {
+        private static void showQueryData(Query_New query) {
             System.out.println(query.getType());
             System.out.println(query.getMessageID().getPeerID());
             System.out.println(query.getMessageID().getSequenceNumber());
