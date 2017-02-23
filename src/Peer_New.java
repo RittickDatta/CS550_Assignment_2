@@ -38,6 +38,10 @@ public class Peer_New {
     //Neighbors to Socket Mappings
     private static ConcurrentHashMap<Integer, Socket> sockets = new ConcurrentHashMap<>();
 
+    //TTL Constant
+    private static final Integer TTL = 2;
+    private  static final String configFileName = "network_linear.config";
+
     public static void main(String[] args) {
         //--------------Getting Peer ID-----------------------------------------
         System.out.println("Enter Peer ID number: (1,2,3,4) ");
@@ -48,7 +52,7 @@ public class Peer_New {
         }
 
         //-----Getting IP Address, Port, Number of peers and Neighbors of each peer.
-        configFileData = ReadConfigFile.readFile("network_linear.config");
+        configFileData = ReadConfigFile.readFile(configFileName);
 
         for (Integer key : configFileData.keySet()) {
             if (key == Integer.parseInt(peerID)) {
@@ -443,7 +447,7 @@ public class Peer_New {
         private QueryHit_New createQueryHitObject(Query_New queryObj) {
             QueryHit_New queryHit;
 
-            queryHit = new QueryHit_New(queryObj.getMessageID(), 2/*queryObj.getTTL()*/, queryObj.getFileName(), IP, PORT, queryObj.getForwardPath(), queryObj.getSearchResults());
+            queryHit = new QueryHit_New(queryObj.getMessageID(), TTL/*queryObj.getTTL()*/, queryObj.getFileName(), IP, PORT, queryObj.getForwardPath(), queryObj.getSearchResults());//TODO
             System.out.println("Forward Path" + queryObj.getForwardPath());
             return queryHit;
         }
@@ -543,7 +547,7 @@ public class Peer_New {
                 }
 
 
-                Query_New query = new Query_New(new MessageID(peerID, ++sequenceNumber), 2, fileName, Integer.parseInt(peerID));
+                Query_New query = new Query_New(new MessageID(peerID, ++sequenceNumber), TTL, fileName, Integer.parseInt(peerID));//TODO
                 //showQueryData(query);
 
                 try {
@@ -554,7 +558,6 @@ public class Peer_New {
                         sockets[i] = new Socket(ip, port);
                     }
 
-                    //sockets[0] = new Socket("127.0.0.1", 3003);
 
                     for (int i = 0; i < sockets.length; i++) {
                         if (sockets[i] != null) {
