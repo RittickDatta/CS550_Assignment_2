@@ -1,4 +1,5 @@
 import java.io.Serializable;
+import java.net.Socket;
 import java.util.ArrayList;
 
 /**
@@ -11,6 +12,7 @@ public class Query_New implements Serializable {
     private String fileName;
     private ArrayList<Integer> forwardPath = new ArrayList<>();
     private ArrayList<String> searchResults = new ArrayList<>();
+    private Socket homeSocket;
 
     public Query_New(MessageID messageID, Integer TTL, String fileName, Integer peerId) {
         this.messageID = messageID;

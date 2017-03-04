@@ -1,4 +1,4 @@
-import jdk.internal.util.xml.impl.Input;
+
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -164,7 +164,7 @@ public class Peer_New {
                 Query_New queryObj;
                 if (o instanceof Query_New) {
                     queryObj = (Query_New) o;
-                    System.out.println(queryObj.getType());
+                    //System.out.println(queryObj.getType());
 
 
                     //Add This Peer ID to Forward Path
@@ -172,7 +172,7 @@ public class Peer_New {
 
                     //Decrease TTL by 1
                     queryObj.setTTL();
-                    System.out.println(queryObj.getTTL());
+                    //System.out.println(queryObj.getTTL());
 
                     if (queryObj.getType().equals("query")) {
                         boolean searchResult = searchPeerFiles(queryObj.getFileName());
@@ -199,7 +199,7 @@ public class Peer_New {
                                     seenQueries.put(new MessageID(queryObj.getMessageID().getPeerID(),
                                                     queryObj.getMessageID().getSequenceNumber()),
                                             new UpstreamPeerID(ip, port));
-                                    System.out.println("CHECKPOINT");
+                                    //System.out.println("CHECKPOINT");
 
                                     sockets.put(nextNeighbor, new Socket(ip, port));
 
@@ -279,7 +279,7 @@ public class Peer_New {
                 QueryHit_New queryHitObj;
                 if (o instanceof QueryHit_New) {
                     queryHitObj = (QueryHit_New) o;
-                    System.out.println(queryHitObj.getType());
+                    //System.out.println(queryHitObj.getType());
 
                     //Send Backward to Requesting Peer
                     if (!queryHitObj.getMessageID().getPeerID().equals(ID_SERVER)) {
@@ -296,13 +296,16 @@ public class Peer_New {
                         }
                     } else {
 
-                        /*outputStream = new ObjectOutputStream(homeConnection.getOutputStream());
-                        outputStream.writeObject("Hello"); //TODO
-                        outputStream.flush();*/
+                        //CONNECT TO CLIENT THREAD AND SEND QUERYHIT OBJECT
+                        //TODO
+
+                        Socket newSocket = new Socket("127.0.0.1", 4001);
+                        ObjectOutputStream objOutput = new ObjectOutputStream(newSocket.getOutputStream());
+                        objOutput.writeObject(queryHitObj);
+
 
                         //-------------------Search Result and Download---------------------------
 
-                        System.out.println(queryHitObj.getSearchResults());
                         ArrayList<String> searchResults = queryHitObj.getSearchResults();
 
                         System.out.println("--------------Distributed Search Result--------------");
@@ -370,7 +373,7 @@ public class Peer_New {
                                         System.out.println("File Successfully Downloaded.");
 
 
-                                        nextSearchRequest();
+                                        //nextSearchRequest();
 
 
                                     } catch (IOException e) {
@@ -382,11 +385,9 @@ public class Peer_New {
                             }else{
                                 System.out.println("This search & download request is complete.");
 
-                                nextSearchRequest();
+                                //nextSearchRequest();
 
-                                /*PrintWriter writer = new PrintWriter(homeConnection.getOutputStream()); //TODO
-                                writer.println("DONE");
-                                writer.flush();*/
+
                             }
 
                         } else{
@@ -397,18 +398,7 @@ public class Peer_New {
 
                         }
 
-                        /*try {
-                            outputStream = new ObjectOutputStream(homeConnection.getOutputStream());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        outputStream.flush();
-                        try {
-                            outputStream.writeObject(queryHitObj);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        outputStream.flush();*/
+
                     }
                 }
 
@@ -425,17 +415,12 @@ public class Peer_New {
             } catch (Exception e) {
                 System.out.println("Exception Server After Server Run()");
             } finally {
-                /*try {
-                    outputStream = new ObjectOutputStream(homeConnection.getOutputStream());
-                    outputStream.writeObject("Back From Server...");
-                } catch (IOException e) {
-                    System.out.println("In Finally of Finally...");
-                }*/
+
             }
 
         }
 
-        private void nextSearchRequest() {
+        /*private void nextSearchRequest() {
             Socket[] sockets;
             String fileName = null;
             BufferedReader keyboardInput;
@@ -487,7 +472,7 @@ public class Peer_New {
 
                 }
             }
-        }
+        }*/
 
         private Boolean checkIFMsgSeen(String peerID, Integer seqNum, ConcurrentHashMap<MessageID, UpstreamPeerID> seenQueries) {
             boolean flagForPeer = false;
@@ -536,7 +521,7 @@ public class Peer_New {
                     try {
                         fileInputStream = new FileInputStream(file);
                     } catch (FileNotFoundException e) {
-                        System.out.println("File Not Found."); //TODO
+                        System.out.println("File Not Found.");
                     }
 
                     BufferedInputStream InputStream = new BufferedInputStream(fileInputStream);
@@ -603,7 +588,7 @@ public class Peer_New {
         }
 
         public void run() {
-            for (int count = 1; count <= 1; count++) {
+
 
                 sockets = new Socket[myNeighbors_CLIENT.size()];
                 keyboardInput = new BufferedReader(new InputStreamReader(System.in));
@@ -638,36 +623,31 @@ public class Peer_New {
                             outputStream.writeObject(query);
                             outputStream.flush();
 
-
-                            /*socketInput = new BufferedReader(new InputStreamReader(sockets[i].getInputStream()));//TODO
-                            String message = socketInput.readLine();
-                            System.out.println(message);*/
-
-                           /* Object o = inputStream.readObject();
-                            if (o instanceof String) {
-                                String response = (String) o;
-                                System.out.println("Message from server: "+response);
-                            }*/
-
                         }
                     }
 
+                ServerSocket clientListener = new ServerSocket(4001);
+                QueryHit_New peerObject;
+                while(true){
+                    Socket peerServer = clientListener.accept();
+                    ObjectInputStream objInput = new ObjectInputStream(peerServer.getInputStream()); //TODO
+                    peerObject = (QueryHit_New) objInput.readObject();
+                    System.out.println(peerObject.getSearchResults());
+                    break;
+                }
+                System.out.println("Peer Object Received.");
 
                 } catch (Exception e) {
                     System.out.println("Exception in TRY/CATCH, 355");
                 } finally {
 
                 }
-            }
+
+
+
         }
 
-        private static void showQueryData(Query_New query) {
-            System.out.println(query.getType());
-            System.out.println(query.getMessageID().getPeerID());
-            System.out.println(query.getMessageID().getSequenceNumber());
-            System.out.println(query.getTTL());
-            System.out.println(query.getFileName());
-        }
+
     }
 
 

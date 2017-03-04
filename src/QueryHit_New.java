@@ -1,5 +1,6 @@
 import java.io.Serializable;
 import java.lang.reflect.Array;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -15,6 +16,7 @@ public class QueryHit_New implements Serializable {
     private Integer port;
     private ArrayList<Integer> backwardPath = new ArrayList<>();
     private ArrayList<String> searchResults = new ArrayList<>();
+    private Socket homeSocket;
 
     public QueryHit_New(MessageID messageID, Integer TTL, String fileName, String peerIP, Integer port, ArrayList<Integer> backwardPath, ArrayList<String> search_Results) {
         this.messageID = messageID;
