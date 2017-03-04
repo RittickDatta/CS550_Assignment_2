@@ -3,6 +3,7 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.BufferOverflowException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
@@ -152,6 +153,7 @@ public class Peer_New {
             ObjectOutputStream outputStream;
             ObjectInputStream inputStream;
             BufferedReader userInput2;
+            Integer PORT_SELF = Integer.parseInt("4"+PORT_SERVER.toString().substring(1));
 
             try {
                 inputStream = new ObjectInputStream(connection.getInputStream()); //<----same OOS and OIS for different Sockets
@@ -299,103 +301,10 @@ public class Peer_New {
                         //CONNECT TO CLIENT THREAD AND SEND QUERYHIT OBJECT
                         //TODO
 
-                        Socket newSocket = new Socket("127.0.0.1", 4001);
-                        ObjectOutputStream objOutput = new ObjectOutputStream(newSocket.getOutputStream());
-                        objOutput.writeObject(queryHitObj);
-
-
-                        //-------------------Search Result and Download---------------------------
-
-                        ArrayList<String> searchResults = queryHitObj.getSearchResults();
-
-                        System.out.println("--------------Distributed Search Result--------------");
-                        for (int i = 0; i < searchResults.size(); i++) {
-                            String option = searchResults.get(i);
-                            String[] split = option.split(":");
-                            String ip = split[0];
-                            String port = split[1];
-                            String peerID = port.substring(port.length() - 1);
-
-                            System.out.println("Peer ID: " + peerID + " IP: " + ip + " PORT#: " + port);
-                        }
-
-
-                        userInput2 = new BufferedReader(new InputStreamReader(System.in));
-
-                        if (searchResults.size() > 0) {
-
-                            System.out.println("Do you want to download file?");
-                            String userChoice = userInput2.readLine();
-
-                            if (userChoice.equals("y")) {
-                                System.out.println("Please enter PORT NUMBER from above list:");
-                                String userSelection = userInput2.readLine();
-                                String ip = "127.0.0.1";
-                                String port = userSelection;
-                                String fullFilePath = "Node" + port.substring(port.length() - 1) + "/Myfiles/" + queryHitObj.getFileName();
-                                System.out.println(ip + " " + port + " " + fullFilePath);
-
-                                Download_Request downloadRequest;
-                                downloadRequest = new Download_Request(fullFilePath, queryHitObj.getFileName());
-
-
-                                System.out.println("Contacting Peer To Download File...");
-                                Socket socketForPeer = new Socket(ip, Integer.parseInt(port));
-                                outputStream = new ObjectOutputStream(socketForPeer.getOutputStream());
-                                outputStream.writeObject(downloadRequest);
-                                outputStream.flush();
-
-                                BufferedReader socketPeerInput = new BufferedReader(new InputStreamReader(socketForPeer.getInputStream()));
-
-                                byte[] byteArray = new byte[1];
-                                int bytesRead;
-                                InputStream input;
-                                input = socketForPeer.getInputStream();
-                                ByteArrayOutputStream byteOutputStream;
-                                byteOutputStream = new ByteArrayOutputStream();
-
-                                if (input != null) {
-
-                                    BufferedOutputStream bufferedOStream = null;
-                                    try {
-
-                                        bufferedOStream = new BufferedOutputStream(new FileOutputStream("Node" + peerID + "/Downloads/" + queryHitObj.getFileName()));
-                                        bytesRead = input.read(byteArray, 0, byteArray.length);
-
-                                        do {
-                                            byteOutputStream.write(byteArray, 0, byteArray.length);
-                                            bytesRead = input.read(byteArray);
-                                        } while (bytesRead != -1);
-
-                                        bufferedOStream.write(byteOutputStream.toByteArray());
-                                        bufferedOStream.flush();
-
-                                        System.out.println("File Successfully Downloaded.");
-
-
-                                        //nextSearchRequest();
-
-
-                                    } catch (IOException e) {
-
-                                    }
-
-                                }
-
-                            }else{
-                                System.out.println("This search & download request is complete.");
-
-                                //nextSearchRequest();
-
-
-                            }
-
-                        } else{
-                            System.out.println("File Not Found.");
-
-                            //nextSearchRequest();
-
-
+                        if (queryHitObj.getSearchResults().size() > 0) {
+                            Socket newSocket = new Socket("127.0.0.1", PORT_SELF);
+                            ObjectOutputStream objOutput = new ObjectOutputStream(newSocket.getOutputStream());
+                            objOutput.writeObject(queryHitObj);
                         }
 
 
@@ -413,6 +322,7 @@ public class Peer_New {
 
 
             } catch (Exception e) {
+                e.printStackTrace();
                 System.out.println("Exception Server After Server Run()");
             } finally {
 
@@ -589,8 +499,15 @@ public class Peer_New {
 
         public void run() {
 
+            ServerSocket clientListener = null;
+            try {
+                Integer PORT_CSS = Integer.parseInt("4"+PORT_CLIENT.toString().substring(1));
+                clientListener = new ServerSocket(PORT_CSS);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
-                sockets = new Socket[myNeighbors_CLIENT.size()];
+            sockets = new Socket[myNeighbors_CLIENT.size()];
                 keyboardInput = new BufferedReader(new InputStreamReader(System.in));
 
                 System.out.println("In run() of client.");
@@ -626,22 +543,109 @@ public class Peer_New {
                         }
                     }
 
-                ServerSocket clientListener = new ServerSocket(4001);
-                QueryHit_New peerObject;
+
+                QueryHit_New queryHitObj;
                 while(true){
                     Socket peerServer = clientListener.accept();
                     ObjectInputStream objInput = new ObjectInputStream(peerServer.getInputStream()); //TODO
-                    peerObject = (QueryHit_New) objInput.readObject();
-                    System.out.println(peerObject.getSearchResults());
+                    queryHitObj = (QueryHit_New) objInput.readObject();
+                    System.out.println(queryHitObj.getSearchResults());
+
+                    System.out.println("Peer Object Received.");
+
+                    //-------------------Search Result and Download---------------------------
+
+                    ArrayList<String> searchResults = queryHitObj.getSearchResults();
+                    BufferedReader userInput2;
+
+
+                    System.out.println("--------------Distributed Search Result--------------");
+                    for (int i = 0; i < searchResults.size(); i++) {
+                        String option = searchResults.get(i);
+                        String[] split = option.split(":");
+                        String ip = split[0];
+                        String port = split[1];
+                        String peerID = port.substring(port.length() - 1);
+
+                        System.out.println("Peer ID: " + peerID + " IP: " + ip + " PORT#: " + port);
+                    }
+
+
+                    userInput2 = new BufferedReader(new InputStreamReader(System.in));
+
+                    if (searchResults.size() > 0) {
+
+                        System.out.println("Do you want to download file?");
+                        String userChoice = userInput2.readLine();
+
+                        if (userChoice.equals("y")) {
+                            System.out.println("Please enter PORT NUMBER from above list:");
+                            String userSelection = userInput2.readLine();
+                            String ip = "127.0.0.1";
+                            String port = userSelection;
+                            String fullFilePath = "Node" + port.substring(port.length() - 1) + "/Myfiles/" + queryHitObj.getFileName();
+                            System.out.println(ip + " " + port + " " + fullFilePath);
+
+                            Download_Request downloadRequest;
+                            downloadRequest = new Download_Request(fullFilePath, queryHitObj.getFileName());
+
+
+                            System.out.println("Contacting Peer To Download File...");
+                            Socket socketForPeer = new Socket(ip, Integer.parseInt(port));
+                            outputStream = new ObjectOutputStream(socketForPeer.getOutputStream());
+                            outputStream.writeObject(downloadRequest);
+                            outputStream.flush();
+
+                            BufferedReader socketPeerInput = new BufferedReader(new InputStreamReader(socketForPeer.getInputStream()));
+
+                            byte[] byteArray = new byte[1];
+                            int bytesRead;
+                            InputStream input;
+                            input = socketForPeer.getInputStream();
+                            ByteArrayOutputStream byteOutputStream;
+                            byteOutputStream = new ByteArrayOutputStream();
+
+                            if (input != null) {
+
+                                BufferedOutputStream bufferedOStream = null;
+                                try {
+
+                                    bufferedOStream = new BufferedOutputStream(new FileOutputStream("Node" + peerID + "/Downloads/" + queryHitObj.getFileName()));
+                                    bytesRead = input.read(byteArray, 0, byteArray.length);
+
+                                    do {
+                                        byteOutputStream.write(byteArray, 0, byteArray.length);
+                                        bytesRead = input.read(byteArray);
+                                    } while (bytesRead != -1);
+
+                                    bufferedOStream.write(byteOutputStream.toByteArray());
+                                    bufferedOStream.flush();
+
+                                    System.out.println("File Successfully Downloaded.");
+
+                                    //nextSearchRequest();
+
+                                } catch (IOException e) {
+                                }
+                            }
+                        }else{
+                            System.out.println("This search & download request is complete.");
+                            //nextSearchRequest();
+                        }
+                    } else{
+                        System.out.println("File Not Found.");
+                        //nextSearchRequest();
+                    }
+
                     break;
                 }
-                System.out.println("Peer Object Received.");
 
-                } catch (Exception e) {
-                    System.out.println("Exception in TRY/CATCH, 355");
-                } finally {
 
-                }
+            } catch (Exception e) {
+                System.out.println("Exception in TRY/CATCH, 355");
+            } finally {
+
+            }
 
 
 
