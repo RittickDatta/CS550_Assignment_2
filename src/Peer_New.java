@@ -508,8 +508,9 @@ public class Peer_New {
             }
 
             sockets = new Socket[myNeighbors_CLIENT.size()];
-                keyboardInput = new BufferedReader(new InputStreamReader(System.in));
+            keyboardInput = new BufferedReader(new InputStreamReader(System.in));
 
+            while (true) {
                 System.out.println("In run() of client.");
                 System.out.println("Enter Name of File to Search:");
                 try {
@@ -641,12 +642,12 @@ public class Peer_New {
                 }
 
 
-            } catch (Exception e) {
-                System.out.println("Exception in TRY/CATCH, 355");
-            } finally {
+                } catch (Exception e) {
+                    System.out.println("Exception in TRY/CATCH, 355");
+                } finally {
 
+                }
             }
-
 
 
         }
