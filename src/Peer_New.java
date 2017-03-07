@@ -32,6 +32,7 @@ public class Peer_New {
     //Peer ID and sequence number of Message ID
     private static String peerID;
     private static Integer sequenceNumber = 0;
+    private static Integer invalidationSequenceNumber = 0; //---------------- NEW
 
     // List of files of this peer.
     private static ArrayList<String> myFiles = new ArrayList<>();
