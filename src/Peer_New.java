@@ -534,6 +534,9 @@ public class Peer_New {
                     System.out.println("IOException while user entering filename to search.");
                 }
 
+                if(searchPeerFiles(fileName)){ //---------NEW
+                    System.out.println("Peer Already Contains File"); continue;
+                }
 
                 Query_New query = new Query_New(new MessageID(peerID, ++sequenceNumber), TTL, fileName, Integer.parseInt(peerID));
                 //showQueryData(query);
