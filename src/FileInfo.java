@@ -9,6 +9,9 @@ public class FileInfo {
     private Integer originServerID;
     private File fileObject;
 
+    //For Downloaded Files ONLY
+    private String consistencyState; // Valid, Invalid or TTR Expired
+
     public FileInfo(String fileName, Integer versionNumber, Integer originServerID, File fileObject) {
         this.fileName = fileName;
         this.versionNumber = versionNumber;
@@ -34,10 +37,18 @@ public class FileInfo {
         return fileObject;
     }
 
+    public String getConsistencyState() {
+        return consistencyState;
+    }
+
     //------Setters---
 
 
     public void setVersionNumber() {
         this.versionNumber += 1;
+    }
+
+    public void setConsistencyState(String consistencyState) {
+        this.consistencyState = consistencyState;
     }
 }

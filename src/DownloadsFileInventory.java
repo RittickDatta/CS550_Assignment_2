@@ -4,30 +4,28 @@ import java.util.ArrayList;
 /**
  * Created by rittick on 3/7/17.
  */
-public class OriginFileInventory {
+public class DownloadsFileInventory {
     //Fields
     private String path;
     private Integer originServerID;
-    private ArrayList<FileInfo> myFiles = new ArrayList<>();
+    private ArrayList<FileInfo> myDownloads = new ArrayList<>();
 
-
-    public OriginFileInventory(String path, Integer originServerID) {
+    public DownloadsFileInventory(String path, Integer originServerID) {
         this.path = path;
         this.originServerID = originServerID;
     }
 
     //Methods
-    public ArrayList<FileInfo> prepareOriginFileInventory(){
+    public ArrayList<FileInfo> prepareDownloadsFileInventory(){
         File directory = new File(this.path);
         String[] fileNames = directory.list();
 
         for(int i=0; i<fileNames.length; i++){
             File nextFile = new File(path+"/"+fileNames[i]);
             FileInfo fileInfo = new FileInfo(fileNames[i], 1, originServerID, nextFile);
-            myFiles.add(fileInfo);
+            myDownloads.add(fileInfo);
         }
-
-        return myFiles;
+        return myDownloads;
     }
 
     public void displayFileInfo(FileInfo obj){
@@ -39,15 +37,11 @@ public class OriginFileInventory {
 
     /*public static void main(String[] args) {
 
-        OriginFileInventory originFileInventory = new OriginFileInventory("Node1/Myfiles/", 1);
-        ArrayList<FileInfo> fileInfos = originFileInventory.prepareOriginFileInventory();
+        DownloadsFileInventory downloadsFileInventory = new DownloadsFileInventory("Node1/Downloads/", 1);
+        ArrayList<FileInfo> fileInfos = downloadsFileInventory.prepareDownloadsFileInventory();
 
         for(int j=0; j<fileInfos.size(); j++){
-            originFileInventory.displayFileInfo(fileInfos.get(j));
+            downloadsFileInventory.displayFileInfo(fileInfos.get(j));
         }
     }*/
-
-
-
-
 }
