@@ -148,7 +148,7 @@ public class Peer_New {
         }
 
         public void run() {
-            System.out.println("In run() of server.");
+//            System.out.println("In run() of server.");
 
             ObjectOutputStream outputStream;
             ObjectInputStream inputStream;
@@ -180,7 +180,7 @@ public class Peer_New {
                         boolean searchResult = searchPeerFiles(queryObj.getFileName());
                         if (searchResult) {
                             //Update query object
-                            System.out.println("Peer " + ID_SERVER + " Contains File.");
+//                            System.out.println("Peer " + ID_SERVER + " Contains File.");
                             queryObj.setSearchResults(IP + ":" + PORT);
                         }
 
@@ -300,6 +300,20 @@ public class Peer_New {
 
                         //CONNECT TO CLIENT THREAD AND SEND QUERYHIT OBJECT
                         //TODO
+                        ArrayList<String> searchResults = queryHitObj.getSearchResults();
+
+
+                        System.out.println("--------------Distributed Search Result--------------");
+                        for (int i = 0; i < searchResults.size(); i++) {
+                            String option = searchResults.get(i);
+                            String[] split = option.split(":");
+                            String ip = split[0];
+                            String port = split[1];
+                            String peerID = port.substring(port.length() - 1);
+
+                            System.out.println("Peer ID: " + peerID + " IP: " + ip + " PORT#: " + port);
+                        }
+                        System.out.println("Do you want to download file?");
 
                         if (queryHitObj.getSearchResults().size() > 0) {
                             Socket newSocket = new Socket("127.0.0.1", PORT_SELF);
@@ -411,7 +425,7 @@ public class Peer_New {
             QueryHit_New queryHit;
 
             queryHit = new QueryHit_New(queryObj.getMessageID(), TTL/*queryObj.getTTL()*/, queryObj.getFileName(), IP, PORT, queryObj.getForwardPath(), queryObj.getSearchResults());
-            System.out.println("Forward Path" + queryObj.getForwardPath());
+//            System.out.println("Forward Path" + queryObj.getForwardPath());
             return queryHit;
         }
 
@@ -423,7 +437,7 @@ public class Peer_New {
                 if (output != null) {
                     //fullFileAddress = fullFileAddress.substring(9);
                     File file = new File(fullFileAddress);
-                    System.out.println("File Address: " + fullFileAddress);
+//                    System.out.println("File Address: " + fullFileAddress);
                     byte[] byteArray = new byte[(int) file.length()];
 
                     FileInputStream fileInputStream = null;
@@ -511,7 +525,7 @@ public class Peer_New {
             keyboardInput = new BufferedReader(new InputStreamReader(System.in));
 
             while (true) {
-                System.out.println("In run() of client.");
+//                System.out.println("In run() of client.");
                 System.out.println("Enter Name of File to Search:");
                 try {
                     fileName = keyboardInput.readLine();
@@ -554,13 +568,12 @@ public class Peer_New {
 
                     System.out.println("Peer Object Received.");
 
-                    //-------------------Search Result and Download---------------------------
+                    //-------------------Search Result ---------------------------
 
                     ArrayList<String> searchResults = queryHitObj.getSearchResults();
-                    BufferedReader userInput2;
 
 
-                    System.out.println("--------------Distributed Search Result--------------");
+                   /* System.out.println("--------------Distributed Search Result--------------");
                     for (int i = 0; i < searchResults.size(); i++) {
                         String option = searchResults.get(i);
                         String[] split = option.split(":");
@@ -569,9 +582,10 @@ public class Peer_New {
                         String peerID = port.substring(port.length() - 1);
 
                         System.out.println("Peer ID: " + peerID + " IP: " + ip + " PORT#: " + port);
-                    }
+                    }*/
 
 
+                    BufferedReader userInput2;
                     userInput2 = new BufferedReader(new InputStreamReader(System.in));
 
                     if (searchResults.size() > 0) {
