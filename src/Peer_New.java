@@ -46,7 +46,10 @@ public class Peer_New {
 
     //----------Start Change--------------------
     private static ConcurrentHashMap<Integer, Socket> socketsConsistency = new ConcurrentHashMap<>();
-
+    private static OriginFileInventory originFileInventory;
+    private static DownloadsFileInventory downloadsFileInventory;
+    private static ArrayList<FileInfo> fileInfosOrigin;
+    private static ArrayList<FileInfo> fileInfosDownloads;
     //----------End Change----------------------
 
     public static void main(String[] args) {
@@ -122,8 +125,26 @@ public class Peer_New {
 
         for (int i = 0; i < myFiles.size(); i++) {
             if (myFiles.get(i).equals(fileName)) {
-                flag = true;
-                return flag;
+                if (checkFileValidity(myFiles.get(i))) {                //-------------Start Change------------------
+                    flag = true;
+                    return flag;
+                }
+            }
+        }
+
+        return flag;
+    }
+
+    private static boolean checkFileValidity(String filename) { //TODO
+        boolean flag = false;
+
+        for(int i=0; i<fileInfosOrigin.size(); i++){
+            FileInfo fileInfo = fileInfosOrigin.get(i);
+            if(fileInfo.getFileName().equals(filename)){
+                if (fileInfo.getConsistencyState().equals("VALID")){
+                    flag = true;
+                    return flag;
+                }
             }
         }
 
@@ -538,7 +559,7 @@ public class Peer_New {
         private BufferedReader socketInput;
 
         //--------Start Change------------------
-        ArrayList<FileInfo> fileInfosOrigin;
+
         Socket[] socketsNeighbors = null;
 
         //---------End Change---------------------
@@ -556,11 +577,13 @@ public class Peer_New {
 
             //--------Start Change--------------------------------
 
-            OriginFileInventory originFileInventory = new OriginFileInventory("Node" + peerID + "/Myfiles/", Integer.parseInt(peerID));
+
+            originFileInventory = new OriginFileInventory("Node" + peerID + "/Myfiles/", Integer.parseInt(peerID));
             fileInfosOrigin = originFileInventory.prepareOriginFileInventory();
 
-            DownloadsFileInventory downloadsFileInventory = new DownloadsFileInventory("Node" + peerID + "/Downloads/", Integer.parseInt(peerID));
-            ArrayList<FileInfo> fileInfosDownloads = downloadsFileInventory.prepareDownloadsFileInventory();
+
+            downloadsFileInventory = new DownloadsFileInventory("Node" + peerID + "/Downloads/", Integer.parseInt(peerID));
+            fileInfosDownloads = downloadsFileInventory.prepareDownloadsFileInventory();
 
             if (peerID.equals("1")) {
                 String fileToModify = "file1.txt";
