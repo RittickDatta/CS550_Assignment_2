@@ -23,6 +23,7 @@ public class DownloadsFileInventory {
         for(int i=0; i<fileNames.length; i++){
             File nextFile = new File(path+"/"+fileNames[i]);
             FileInfo fileInfo = new FileInfo(fileNames[i], 1, originServerID, nextFile);
+            fileInfo.setConsistencyState("VALID");
             myDownloads.add(fileInfo);
         }
         return myDownloads;
@@ -33,6 +34,7 @@ public class DownloadsFileInventory {
         System.out.println(obj.getVersionNumber());
         System.out.println(obj.getOriginServerID());
         System.out.println(obj.getFileObject().lastModified());
+        System.out.println(obj.getConsistencyState());
     }
 
     /*public static void main(String[] args) {
