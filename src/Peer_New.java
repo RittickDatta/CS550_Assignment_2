@@ -336,6 +336,13 @@ public class Peer_New {
                     obtain(outputStream1, download_request.getFullFilePath());
                 }
 
+                Invalidation invalidation;
+                if(o instanceof Invalidation){
+                    Invalidation invalidation_Obj = (Invalidation) o;
+                    System.out.println("Invalidation Object Received.");
+                }
+
+
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -506,7 +513,7 @@ public class Peer_New {
 
         //--------Start Change------------------
         ArrayList<FileInfo> fileInfosOrigin;
-
+        Socket[] socketsNeighbors = null;
 
         //---------End Change---------------------
 
@@ -544,6 +551,33 @@ public class Peer_New {
                     inspectInvalidationObject(invalidation);
 
                     //File is Modified, Now Broadcast Invalidation Object to Other Nodes.
+                    socketsNeighbors = new Socket[myNeighbors_CLIENT.size()];
+                    try {
+
+
+                        for (int i = 0; i < socketsNeighbors.length; i++) {
+                            String IPAndPort = peerIdToIPAndPort_CLIENT.get(myNeighbors_CLIENT.get(i));
+                            String ip = IPAndPort.split(":")[0];
+                            int port = Integer.parseInt(IPAndPort.split(":")[1]);
+                            socketsNeighbors[i] = new Socket(ip, port);
+                        }
+
+
+                        for (int i = 0; i < socketsNeighbors.length; i++) {
+                            if (socketsNeighbors[i] != null) {
+                                outputStream = new ObjectOutputStream(socketsNeighbors[i].getOutputStream());
+                                inputStream = new ObjectInputStream(socketsNeighbors[i].getInputStream());
+
+                                outputStream.flush();
+                                outputStream.writeObject(invalidation);
+                                outputStream.flush();
+
+                            }
+                        }
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
 
                 }
             }
