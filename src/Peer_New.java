@@ -44,6 +44,11 @@ public class Peer_New {
     private static final Integer TTL = 2;
     private static final String configFileName = "network_linear.config";
 
+    //----------Start Change--------------------
+    private static ConcurrentHashMap<Integer, Socket> socketsConsistency = new ConcurrentHashMap<>();
+
+    //----------End Change----------------------
+
     public static void main(String[] args) {
         //--------------Getting Peer ID-----------------------------------------
         System.out.println("Enter Peer ID number: (1,2,3,4) ");
@@ -301,7 +306,7 @@ public class Peer_New {
                     } else {
 
                         //CONNECT TO CLIENT THREAD AND SEND QUERYHIT OBJECT
-                        //TODO
+
                         ArrayList<String> searchResults = queryHitObj.getSearchResults();
 
 
@@ -337,9 +342,30 @@ public class Peer_New {
                 }
 
                 Invalidation invalidation;
-                if(o instanceof Invalidation){
+                if(o instanceof Invalidation) {
                     Invalidation invalidation_Obj = (Invalidation) o;
                     System.out.println("Invalidation Object Received.");
+
+                    invalidation_Obj.setForwardPath(Integer.parseInt(peerID));
+
+                    while (neighborsIterator.hasNext()) {
+                        Integer nextNeighbor = neighborsIterator.next();
+                        String ip = peerIdtoIPAndPort.get(nextNeighbor).split(":")[0];
+                        int port = Integer.parseInt(peerIdtoIPAndPort.get(nextNeighbor).split(":")[1]);
+
+                        socketsConsistency.put(nextNeighbor, new Socket(ip, port));//TODO
+
+
+                            if (!invalidation_Obj.getForwardPath().contains(nextNeighbor) ) {
+
+                                outputStream = new ObjectOutputStream(socketsConsistency.get(nextNeighbor).getOutputStream()); // Exception, CHECK
+                                outputStream.flush();
+                                outputStream.writeObject(invalidation_Obj);
+                                outputStream.flush();
+
+                            }
+
+                    }
                 }
 
 
@@ -548,6 +574,7 @@ public class Peer_New {
                             getVersionNumber(fileToModify)
 
                     );
+                    invalidation.setForwardPath(Integer.parseInt(peerID));
                     inspectInvalidationObject(invalidation);
 
                     //File is Modified, Now Broadcast Invalidation Object to Other Nodes.
@@ -638,7 +665,7 @@ public class Peer_New {
                     QueryHit_New queryHitObj;
                     while (true) {
                         Socket peerServer = clientListener.accept();
-                        ObjectInputStream objInput = new ObjectInputStream(peerServer.getInputStream()); //TODO
+                        ObjectInputStream objInput = new ObjectInputStream(peerServer.getInputStream());
                         queryHitObj = (QueryHit_New) objInput.readObject();
                         System.out.println(queryHitObj.getSearchResults());
 
@@ -748,6 +775,7 @@ public class Peer_New {
             System.out.println("File Name: "+invalidation.getFileName());
             System.out.println("Origin Server ID: "+invalidation.getOriginServerID());
             System.out.println("Version Number: "+invalidation.getVersionNumber());
+            System.out.println("Forward Path: "+invalidation.getForwardPath());
         }
 
         private Integer getVersionNumber(String fileToModify) {

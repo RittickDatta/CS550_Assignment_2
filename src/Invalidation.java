@@ -1,4 +1,5 @@
 import java.io.Serializable;
+import java.util.ArrayList;
 
 /**
  * Created by rittick on 3/7/17.
@@ -8,6 +9,7 @@ public class Invalidation implements Serializable{
     private String originServerID;
     private String fileName;
     private Integer versionNumber;
+    private ArrayList<Integer> forwardPath = new ArrayList<>();
 
     public Invalidation(MessageID messageID, String originServerID, String fileName, Integer versionNumber) {
         this.messageID = messageID;
@@ -30,5 +32,13 @@ public class Invalidation implements Serializable{
 
     public Integer getVersionNumber() {
         return versionNumber;
+    }
+
+    public void setForwardPath(Integer peerID) {
+        this.forwardPath.add(peerID);
+    }
+
+    public ArrayList<Integer> getForwardPath() {
+        return forwardPath;
     }
 }
