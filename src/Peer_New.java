@@ -378,7 +378,7 @@ public class Peer_New {
                         String ip = peerIdtoIPAndPort.get(nextNeighbor).split(":")[0];
                         int port = Integer.parseInt(peerIdtoIPAndPort.get(nextNeighbor).split(":")[1]);
 
-                        socketsConsistency.put(nextNeighbor, new Socket(ip, port));//TODO
+                        socketsConsistency.put(nextNeighbor, new Socket(ip, port));
 
 
                             if (!invalidation_Obj.getForwardPath().contains(nextNeighbor) ) {
@@ -390,6 +390,23 @@ public class Peer_New {
 
                             }
 
+                    }
+                }
+
+                Poll poll;
+                if(o instanceof Poll){
+                    Poll poll_Object = (Poll) o;
+                    for(int j=0; j<fileInfosOrigin.size(); j++){
+                        FileInfo fileInfo = fileInfosOrigin.get(j);
+                        if (fileInfo.getFileName().equals(poll_Object.getFileName())){
+                            if(fileInfo.getVersionNumber() > poll_Object.getVersionNumber()){
+                                poll_Object.setConsistencyState("INVALID");//TODO
+                                outputStream.flush();
+                                outputStream.writeObject(poll_Object);
+                                outputStream.flush();
+                                break;
+                            }
+                        }
                     }
                 }
 
@@ -411,7 +428,7 @@ public class Peer_New {
                 if(fileInfo.getFileName().equals(fileName)){
                     fileInfo.setConsistencyState("INVALID");
 
-                    //Give User an Option to Update File //TODO
+                    //Give User an Option to Update File
                     /*try {
                         BufferedReader keyBoardInput = new BufferedReader(new InputStreamReader(System.in));
                         System.out.println("Do you want to update "+fileName+" to lastest version?");
@@ -727,7 +744,7 @@ public class Peer_New {
                         for(int i=0; i<fileInfosOrigin.size(); i++){
                             FileInfo fileInfo = fileInfosOrigin.get(i);
                             if(fileInfo.getFileName().equals(fileToModify)){
-                                fileInfo.setVersionNumber();
+                                fileInfosOrigin.get(i).setVersionNumber();
                             }
                         }
 
@@ -748,6 +765,7 @@ public class Peer_New {
                     for(int i=21; i<=30; i++){ filesPEER3.add(i);}
                     for(int i=31; i<=40; i++){ filesPEER4.add(i);}
 
+                    //Update Origin Server ID in FileInfosOrigin
                     for(int j=0; j<myFiles.size(); j++){
                         String fileName = myFiles.get(j);
                         String[] split1 = fileName.split(".txt");
@@ -766,6 +784,57 @@ public class Peer_New {
                     }
 
                     System.out.println(fileInfosOrigin.size());
+
+                    //Poll Other Servers with Files not Belonging to This Peer
+                    for(int i=0; i<fileInfosOrigin.size(); i++){
+                        FileInfo fileInfo = fileInfosOrigin.get(i);
+                        if (fileInfo.getOriginServerID() != Integer.parseInt(ID_CLIENT)){
+                            Poll poll = new Poll(fileInfo.getFileName(), fileInfo.getConsistencyState(), fileInfo.getVersionNumber());
+                            String IPAndPort = peerIdToIPAndPort_CLIENT.get(fileInfo.getOriginServerID());
+                            String ip = IPAndPort.split(":")[0];
+                            int port = Integer.parseInt(IPAndPort.split(":")[1]);
+
+
+                            try {
+                                Socket socket = new Socket(ip, port);
+                                ObjectOutputStream ObjectOutputPoll;
+                                ObjectInputStream ObjectInputPoll;
+                                ObjectOutputPoll = new ObjectOutputStream(socket.getOutputStream());
+                                ObjectInputPoll = new ObjectInputStream(socket.getInputStream());
+
+                                ObjectOutputPoll.flush();
+                                ObjectOutputPoll.writeObject(poll);  //TODO
+                                ObjectOutputPoll.flush();
+
+
+                                try {
+                                    Poll updatedPoll = (Poll) ObjectInputPoll.readObject();
+                                    System.out.println(updatedPoll.getFileName());
+                                    System.out.println(updatedPoll.getConsistencyState());
+
+                                    for(int z=0; z<fileInfosOrigin.size(); z++){
+                                        FileInfo fileInfo1 = fileInfosOrigin.get(z);
+                                        if(fileInfo1.getFileName().equals(updatedPoll.getFileName())){
+                                            fileInfosOrigin.get(z).setConsistencyState(updatedPoll.getConsistencyState());
+                                        }
+
+                                    }
+
+                                    System.out.println(fileInfosOrigin.size());
+
+                                } catch (ClassNotFoundException e) {
+                                    e.printStackTrace();
+                                }
+
+
+
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
+
+                        }
+                    }
                 }
 
             }
@@ -876,7 +945,7 @@ public class Peer_New {
                                 outputStream.flush();
 
                                 BufferedReader socketPeerInput = new BufferedReader(new InputStreamReader(socketForPeer.getInputStream()));
-//TODO
+
                                 byte[] byteArray = new byte[1];
                                 int bytesRead;
                                 InputStream input;
