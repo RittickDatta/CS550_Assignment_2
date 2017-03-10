@@ -1,6 +1,7 @@
 
 
 import java.io.*;
+import java.lang.reflect.Array;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.BufferOverflowException;
@@ -660,7 +661,8 @@ public class Peer_New {
             downloadsFileInventory = new DownloadsFileInventory("Node" + peerID + "/Downloads/", Integer.parseInt(peerID));
             fileInfosDownloads = downloadsFileInventory.prepareDownloadsFileInventory();
 
-            if (true) {
+            //************** PUSH *************************
+            if (false) {
                 if (peerID.equals("1")) {
                     String fileToModify = "file1.txt";
                     ModifyFile modifyFileObject = new ModifyFile(fileToModify);
@@ -710,6 +712,62 @@ public class Peer_New {
 
                     }
                 }
+            }
+
+            //****************** PULL **********************************
+            if(true){
+
+                if (peerID.equals("1")) {
+                    String fileToModify = "file1.txt";
+                    ModifyFile modifyFileObject = new ModifyFile(fileToModify);
+                    boolean isFileModified = modifyFileObject.modifyFile();
+
+                    if (isFileModified) {
+
+                        for(int i=0; i<fileInfosOrigin.size(); i++){
+                            FileInfo fileInfo = fileInfosOrigin.get(i);
+                            if(fileInfo.getFileName().equals(fileToModify)){
+                                fileInfo.setVersionNumber();
+                            }
+                        }
+
+//                        inspectFileVersionNumbers();
+
+                    }
+                }
+
+                //----------All Other Nodes will Poll Server------------
+                else{
+                    ArrayList<Integer> filesPEER1 = new ArrayList<>();
+                    ArrayList<Integer> filesPEER2 = new ArrayList<>();
+                    ArrayList<Integer> filesPEER3 = new ArrayList<>();
+                    ArrayList<Integer> filesPEER4 = new ArrayList<>();
+
+                    for(int i=1; i<=10; i++){ filesPEER1.add(i);}
+                    for(int i=11; i<=20; i++){ filesPEER2.add(i);}
+                    for(int i=21; i<=30; i++){ filesPEER3.add(i);}
+                    for(int i=31; i<=40; i++){ filesPEER4.add(i);}
+
+                    for(int j=0; j<myFiles.size(); j++){
+                        String fileName = myFiles.get(j);
+                        String[] split1 = fileName.split(".txt");
+                        String[] split2 = split1[0].split("file");
+                        Integer fileNumber = Integer.parseInt(split2[1]);
+
+                        if(filesPEER1.contains(fileNumber)){
+                            updateFileInfosOrigin(fileName, 1);
+                        }else if (filesPEER2.contains(fileNumber)){
+                            updateFileInfosOrigin(fileName, 2);
+                        }else if (filesPEER3.contains(fileNumber)){
+                            updateFileInfosOrigin(fileName, 3);
+                        }else if (filesPEER4.contains(fileNumber)){
+                            updateFileInfosOrigin(fileName, 4);
+                        }
+                    }
+
+                    System.out.println(fileInfosOrigin.size());
+                }
+
             }
 
 
@@ -870,6 +928,24 @@ public class Peer_New {
             }
 
 
+        }
+
+        private void updateFileInfosOrigin(String fileName, Integer originServerID) {
+            for(int i=0; i<fileInfosOrigin.size(); i++){
+                FileInfo fileInfo = fileInfosOrigin.get(i);
+                if(fileInfo.getFileName().equals(fileName)){
+                    fileInfosOrigin.get(i).setOriginServerID(originServerID);
+                }
+            }
+        }
+
+        private static void inspectFileVersionNumbers() {
+            for(int i=0; i<fileInfosOrigin.size(); i++){
+                FileInfo fileInfo = fileInfosOrigin.get(i);
+                System.out.println(fileInfo.getFileName());
+                System.out.println(fileInfo.getVersionNumber());
+                System.out.println();
+            }
         }
 
         private static void inspectInvalidationObject(Invalidation invalidation) {

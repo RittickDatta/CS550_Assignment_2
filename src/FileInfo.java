@@ -51,4 +51,8 @@ public class FileInfo {
     public void setConsistencyState(String consistencyState) {
         this.consistencyState = consistencyState;
     }
+
+    public void setOriginServerID(Integer originServerID) {
+        this.originServerID = originServerID;
+    }
 }
