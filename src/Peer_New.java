@@ -135,7 +135,7 @@ public class Peer_New {
         return flag;
     }
 
-    private static boolean checkFileValidity(String filename) { //TODO
+    private static boolean checkFileValidity(String filename) {
         boolean flag = false;
 
         for(int i=0; i<fileInfosOrigin.size(); i++){
@@ -331,17 +331,19 @@ public class Peer_New {
                         ArrayList<String> searchResults = queryHitObj.getSearchResults();
 
 
-                        System.out.println("--------------Distributed Search Result--------------");
-                        for (int i = 0; i < searchResults.size(); i++) {
-                            String option = searchResults.get(i);
-                            String[] split = option.split(":");
-                            String ip = split[0];
-                            String port = split[1];
-                            String peerID = port.substring(port.length() - 1);
+                        if (searchResults.size()>0) {
+                            System.out.println("--------------Distributed Search Result--------------");
+                            for (int i = 0; i < searchResults.size(); i++) {
+                                String option = searchResults.get(i);
+                                String[] split = option.split(":");
+                                String ip = split[0];
+                                String port = split[1];
+                                String peerID = port.substring(port.length() - 1);
 
-                            System.out.println("Peer ID: " + peerID + " IP: " + ip + " PORT#: " + port);
+                                System.out.println("Peer ID: " + peerID + " IP: " + ip + " PORT#: " + port);
+                            }
+                            System.out.println("Do you want to download file?");
                         }
-                        System.out.println("Do you want to download file?");
 
                         if (queryHitObj.getSearchResults().size() > 0) {
                             Socket newSocket = new Socket("127.0.0.1", PORT_SELF);
@@ -368,6 +370,7 @@ public class Peer_New {
                     System.out.println("Invalidation Object Received.");
 
                     invalidation_Obj.setForwardPath(Integer.parseInt(peerID));
+                    updateOriginFileInventory(invalidation_Obj);
 
                     while (neighborsIterator.hasNext()) {
                         Integer nextNeighbor = neighborsIterator.next();
@@ -398,6 +401,78 @@ public class Peer_New {
 
             }
 
+        }
+
+        private void updateOriginFileInventory(Invalidation invalidation_obj) {
+            String fileName = invalidation_obj.getFileName();
+            for(int i=0; i<fileInfosOrigin.size(); i++){
+                FileInfo fileInfo = fileInfosOrigin.get(i);
+                if(fileInfo.getFileName().equals(fileName)){
+                    fileInfo.setConsistencyState("INVALID");
+
+                    //Give User an Option to Update File //TODO
+                    /*try {
+                        BufferedReader keyBoardInput = new BufferedReader(new InputStreamReader(System.in));
+                        System.out.println("Do you want to update "+fileName+" to lastest version?");
+                        String updateInvalidFile = keyBoardInput.readLine();
+                        if(updateInvalidFile.equals("y")){
+                            String fullFilePath = "Node" + invalidation_obj.getOriginServerID() + "/Myfiles/" + invalidation_obj.getFileName();
+                            Download_Request downloadRequest;
+                            downloadRequest = new Download_Request(fullFilePath, invalidation_obj.getFileName());
+
+                            System.out.println("Contacting Peer To Download File...");
+                            Socket socketForPeer = new Socket(invalidation_obj.getIP(), invalidation_obj.getPORT());
+
+                            ObjectOutputStream outputStream;
+                            outputStream = new ObjectOutputStream(socketForPeer.getOutputStream());
+                            outputStream.writeObject(downloadRequest);
+                            outputStream.flush();
+
+                            BufferedReader socketPeerInput = new BufferedReader(new InputStreamReader(socketForPeer.getInputStream()));
+
+                            byte[] byteArray = new byte[1];
+                            int bytesRead;
+                            InputStream input;
+                            input = socketForPeer.getInputStream();
+                            ByteArrayOutputStream byteOutputStream;
+                            byteOutputStream = new ByteArrayOutputStream();
+
+                            if (input != null) {
+
+                                BufferedOutputStream bufferedOStream = null;
+                                try {
+
+                                    bufferedOStream = new BufferedOutputStream(new FileOutputStream("Node" + invalidation_obj.getOriginServerID() + "/Myfiles/" + invalidation_obj.getFileName()));
+                                    bytesRead = input.read(byteArray, 0, byteArray.length);
+
+                                    do {
+                                        byteOutputStream.write(byteArray, 0, byteArray.length);
+                                        bytesRead = input.read(byteArray);
+                                    } while (bytesRead != -1);
+
+                                    bufferedOStream.write(byteOutputStream.toByteArray());
+                                    bufferedOStream.flush();
+
+                                    System.out.println("File Successfully Updated.");
+
+                                    //nextSearchRequest();
+
+                                } catch (IOException e) {
+                                }
+                            }
+
+                        }else {
+                            System.out.println("File "+invalidation_obj.getFileName()+" is in Invalid State.");
+                        }
+
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }*/
+
+
+                }
+            }
         }
 
         /*private void nextSearchRequest() {
@@ -585,50 +660,55 @@ public class Peer_New {
             downloadsFileInventory = new DownloadsFileInventory("Node" + peerID + "/Downloads/", Integer.parseInt(peerID));
             fileInfosDownloads = downloadsFileInventory.prepareDownloadsFileInventory();
 
-            if (peerID.equals("1")) {
-                String fileToModify = "file1.txt";
-                ModifyFile modifyFileObject = new ModifyFile(fileToModify);
-                boolean isFileModified = modifyFileObject.modifyFile();
-                if (isFileModified) {
-                    Invalidation invalidation = new Invalidation(
-                            new MessageID(peerID, invalidationSequenceNumber),
-                            peerID,
-                            fileToModify,
-                            getVersionNumber(fileToModify)
+            if (true) {
+                if (peerID.equals("1")) {
+                    String fileToModify = "file1.txt";
+                    ModifyFile modifyFileObject = new ModifyFile(fileToModify);
+                    boolean isFileModified = modifyFileObject.modifyFile();
+                    if (isFileModified) {
 
-                    );
-                    invalidation.setForwardPath(Integer.parseInt(peerID));
-                    inspectInvalidationObject(invalidation);
+                        Invalidation invalidation = new Invalidation(
+                                new MessageID(peerID, invalidationSequenceNumber),
+                                peerID,
+                                fileToModify,
+                                getVersionNumber(fileToModify),
+                                IP_CLIENT,
+                                PORT_CLIENT
+                        );
 
-                    //File is Modified, Now Broadcast Invalidation Object to Other Nodes.
-                    socketsNeighbors = new Socket[myNeighbors_CLIENT.size()];
-                    try {
+                        invalidation.setForwardPath(Integer.parseInt(peerID));
+                        inspectInvalidationObject(invalidation);
 
-
-                        for (int i = 0; i < socketsNeighbors.length; i++) {
-                            String IPAndPort = peerIdToIPAndPort_CLIENT.get(myNeighbors_CLIENT.get(i));
-                            String ip = IPAndPort.split(":")[0];
-                            int port = Integer.parseInt(IPAndPort.split(":")[1]);
-                            socketsNeighbors[i] = new Socket(ip, port);
-                        }
+                        //File is Modified, Now Broadcast Invalidation Object to Other Nodes.
+                        socketsNeighbors = new Socket[myNeighbors_CLIENT.size()];
+                        try {
 
 
-                        for (int i = 0; i < socketsNeighbors.length; i++) {
-                            if (socketsNeighbors[i] != null) {
-                                outputStream = new ObjectOutputStream(socketsNeighbors[i].getOutputStream());
-                                inputStream = new ObjectInputStream(socketsNeighbors[i].getInputStream());
-
-                                outputStream.flush();
-                                outputStream.writeObject(invalidation);
-                                outputStream.flush();
-
+                            for (int i = 0; i < socketsNeighbors.length; i++) {
+                                String IPAndPort = peerIdToIPAndPort_CLIENT.get(myNeighbors_CLIENT.get(i));
+                                String ip = IPAndPort.split(":")[0];
+                                int port = Integer.parseInt(IPAndPort.split(":")[1]);
+                                socketsNeighbors[i] = new Socket(ip, port);
                             }
+
+
+                            for (int i = 0; i < socketsNeighbors.length; i++) {
+                                if (socketsNeighbors[i] != null) {
+                                    outputStream = new ObjectOutputStream(socketsNeighbors[i].getOutputStream());
+                                    inputStream = new ObjectInputStream(socketsNeighbors[i].getInputStream());
+
+                                    outputStream.flush();
+                                    outputStream.writeObject(invalidation);
+                                    outputStream.flush();
+
+                                }
+                            }
+
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
 
-                    } catch (IOException e) {
-                        e.printStackTrace();
                     }
-
                 }
             }
 
@@ -655,10 +735,10 @@ public class Peer_New {
                     System.out.println("IOException while user entering filename to search.");
                 }
 
-                if (searchPeerFiles(fileName)) { //---------NEW
+               /* if (searchPeerFiles(fileName)) { //---------NEW
                     System.out.println("Peer Already Contains File");
                     continue;
-                }
+                }*/
 
                 Query_New query = new Query_New(new MessageID(peerID, ++sequenceNumber), TTL, fileName, Integer.parseInt(peerID));
                 //showQueryData(query);
@@ -738,7 +818,7 @@ public class Peer_New {
                                 outputStream.flush();
 
                                 BufferedReader socketPeerInput = new BufferedReader(new InputStreamReader(socketForPeer.getInputStream()));
-
+//TODO
                                 byte[] byteArray = new byte[1];
                                 int bytesRead;
                                 InputStream input;
