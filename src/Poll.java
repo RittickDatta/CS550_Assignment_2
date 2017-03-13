@@ -8,11 +8,18 @@ public class Poll implements Serializable{
     private String fileName;
     private String consistencyState;
     private Integer versionNumber;
+    private String type;
 
-    public Poll(String fileName, String consistencyState, Integer versionNumber) {
+    public Poll(String fileName, String consistencyState, Integer versionNumber, String type) {
         this.fileName = fileName;
         this.consistencyState = consistencyState;
         this.versionNumber = versionNumber;
+        this.type = type;
+    }
+
+    public Poll(String fileName, String type) {
+        this.fileName = fileName;
+        this.type = type;
     }
 
     public String getFileName() {
@@ -29,5 +36,13 @@ public class Poll implements Serializable{
 
     public void setConsistencyState(String consistencyState) {
         this.consistencyState = consistencyState;
+    }
+
+    public void setVersionNumber(Integer versionNumber) {
+        this.versionNumber = versionNumber;
+    }
+
+    public String getType() {
+        return type;
     }
 }

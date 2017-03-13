@@ -48,6 +48,10 @@ public class FileInfo {
         this.versionNumber += 1;
     }
 
+    public void setVersionNumber_2(Integer versionNumber){
+        this.versionNumber = versionNumber;
+    }
+
     public void setConsistencyState(String consistencyState) {
         this.consistencyState = consistencyState;
     }

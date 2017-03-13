@@ -396,11 +396,26 @@ public class Peer_New {
                 Poll poll;
                 if(o instanceof Poll){
                     Poll poll_Object = (Poll) o;
-                    for(int j=0; j<fileInfosOrigin.size(); j++){
-                        FileInfo fileInfo = fileInfosOrigin.get(j);
-                        if (fileInfo.getFileName().equals(poll_Object.getFileName())){
-                            if(fileInfo.getVersionNumber() > poll_Object.getVersionNumber()){
-                                poll_Object.setConsistencyState("INVALID");//TODO
+                    if (poll_Object.getType().equals("VALIDITY")) {
+                        for(int j=0; j<fileInfosOrigin.size(); j++){
+                            FileInfo fileInfo = fileInfosOrigin.get(j);
+                            if (fileInfo.getFileName().equals(poll_Object.getFileName())){
+                                if(fileInfo.getVersionNumber() > poll_Object.getVersionNumber()){
+                                    poll_Object.setConsistencyState("INVALID");//TODO
+                                    outputStream.flush();
+                                    outputStream.writeObject(poll_Object);
+                                    outputStream.flush();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if(poll_Object.getType().equals("DOWNLOAD")){
+                        for(int i=0; i<fileInfosOrigin.size(); i++){
+                            FileInfo fileInfo = fileInfosOrigin.get(i);
+                            if(fileInfo.getFileName().equals(poll_Object.getFileName())){
+                                poll_Object.setConsistencyState(fileInfo.getConsistencyState());
+                                poll_Object.setVersionNumber(fileInfo.getVersionNumber());
                                 outputStream.flush();
                                 outputStream.writeObject(poll_Object);
                                 outputStream.flush();
@@ -789,7 +804,7 @@ public class Peer_New {
                     for(int i=0; i<fileInfosOrigin.size(); i++){
                         FileInfo fileInfo = fileInfosOrigin.get(i);
                         if (fileInfo.getOriginServerID() != Integer.parseInt(ID_CLIENT)){
-                            Poll poll = new Poll(fileInfo.getFileName(), fileInfo.getConsistencyState(), fileInfo.getVersionNumber());
+                            Poll poll = new Poll(fileInfo.getFileName(), fileInfo.getConsistencyState(), fileInfo.getVersionNumber(),"VALIDITY");
                             String IPAndPort = peerIdToIPAndPort_CLIENT.get(fileInfo.getOriginServerID());
                             String ip = IPAndPort.split(":")[0];
                             int port = Integer.parseInt(IPAndPort.split(":")[1]);
@@ -937,6 +952,19 @@ public class Peer_New {
                                 Download_Request downloadRequest;
                                 downloadRequest = new Download_Request(fullFilePath, queryHitObj.getFileName());
 
+                                Poll poll = new Poll(queryHitObj.getFileName(), "DOWNLOAD"); //TODO
+                                Socket socketDownload = new Socket(ip, Integer.parseInt(port));
+                                ObjectOutputStream outSTreamDownload = new ObjectOutputStream(socketDownload.getOutputStream());
+                                outSTreamDownload.writeObject(poll);
+                                outSTreamDownload.flush();
+
+                                ObjectInputStream inStreamDownload = new ObjectInputStream(socketDownload.getInputStream());
+                                Poll poll_download = (Poll) inStreamDownload.readObject();
+                                System.out.println("File Name: "+poll_download.getFileName());
+                                System.out.println("Consistency State: "+poll_download.getConsistencyState());
+                                System.out.println("Version Number: "+poll_download.getVersionNumber());
+                                updateFileInfosDownload(poll_download);
+                                System.out.println("Downloads Inventory Updated with Consistency state and Version Number...");
 
                                 System.out.println("Contacting Peer To Download File...");
                                 Socket socketForPeer = new Socket(ip, Integer.parseInt(port));
@@ -997,6 +1025,16 @@ public class Peer_New {
             }
 
 
+        }
+
+        private void updateFileInfosDownload(Poll poll_download) {
+            for (int i=0; i<fileInfosDownloads.size(); i++){
+                FileInfo fileInfo = fileInfosDownloads.get(i);
+                if(fileInfo.getFileName().equals(poll_download.getFileName())){
+                    fileInfosDownloads.get(i).setConsistencyState(poll_download.getConsistencyState());
+                    fileInfosDownloads.get(i).setVersionNumber_2(poll_download.getVersionNumber());
+                }
+            }
         }
 
         private void updateFileInfosOrigin(String fileName, Integer originServerID) {
