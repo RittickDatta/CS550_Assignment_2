@@ -1,4 +1,5 @@
 import java.io.File;
+import java.util.Date;
 
 /**
  * Created by rittick on 3/7/17.
@@ -8,6 +9,7 @@ public class FileInfo {
     private Integer versionNumber;
     private Integer originServerID;
     private File fileObject;
+    private Date TTR;
 
     //For Downloaded Files ONLY
     private String consistencyState; // Valid, Invalid or TTR Expired
@@ -41,6 +43,10 @@ public class FileInfo {
         return consistencyState;
     }
 
+    public Date getTTR() {
+        return TTR;
+    }
+
     //------Setters---
 
 
@@ -58,5 +64,9 @@ public class FileInfo {
 
     public void setOriginServerID(Integer originServerID) {
         this.originServerID = originServerID;
+    }
+
+    public void setTTR(Date TTR) {
+        this.TTR = TTR;
     }
 }

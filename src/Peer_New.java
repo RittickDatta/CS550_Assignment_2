@@ -5,8 +5,7 @@ import java.lang.reflect.Array;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.BufferOverflowException;
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -416,6 +415,7 @@ public class Peer_New {
                             if(fileInfo.getFileName().equals(poll_Object.getFileName())){
                                 poll_Object.setConsistencyState(fileInfo.getConsistencyState());
                                 poll_Object.setVersionNumber(fileInfo.getVersionNumber());
+                                poll_Object.setTTR(new Date());
                                 outputStream.flush();
                                 outputStream.writeObject(poll_Object);
                                 outputStream.flush();
@@ -686,6 +686,33 @@ public class Peer_New {
             //--------Start Change--------------------------------
 
 
+            //----------------Read CONFIG FILE
+
+            ConcurrentHashMap<String, String> consisConfig = new ConcurrentHashMap<>();
+            FileInputStream fileInputStream = null;
+
+            try {
+                fileInputStream = new FileInputStream("src/consistency.config");
+            }catch (FileNotFoundException e){
+                System.out.println("File Not Found.");
+            }
+
+            Properties properties = new Properties();
+            try {
+                properties.load(fileInputStream);
+                Set<String> keys = properties.stringPropertyNames();
+
+                for(String key: keys){
+                    consisConfig.put(key, properties.getProperty(key));
+                }
+
+            }catch (IOException e){
+                System.out.println("IOException");
+            }
+
+            //----------------Read COMPLETE
+
+
             originFileInventory = new OriginFileInventory("Node" + peerID + "/Myfiles/", Integer.parseInt(peerID));
             fileInfosOrigin = originFileInventory.prepareOriginFileInventory();
 
@@ -694,7 +721,10 @@ public class Peer_New {
             fileInfosDownloads = downloadsFileInventory.prepareDownloadsFileInventory();
 
             //************** PUSH *************************
-            if (false) {
+            boolean pushFlag = false;
+            String push = consisConfig.get("push");
+            if (push.equals("true")){pushFlag = true;}
+            if (pushFlag) {
                 if (peerID.equals("1")) {
                     String fileToModify = "file1.txt";
                     ModifyFile modifyFileObject = new ModifyFile(fileToModify);
@@ -747,7 +777,10 @@ public class Peer_New {
             }
 
             //****************** PULL **********************************
-            if(true){
+            boolean pullFlag = false;
+            String pull = consisConfig.get("pull");
+            if (pull.equals("true")){pullFlag = true;}
+            if(pullFlag){
 
                 if (peerID.equals("1")) {
                     String fileToModify = "file1.txt";
@@ -963,6 +996,7 @@ public class Peer_New {
                                 System.out.println("File Name: "+poll_download.getFileName());
                                 System.out.println("Consistency State: "+poll_download.getConsistencyState());
                                 System.out.println("Version Number: "+poll_download.getVersionNumber());
+                                System.out.println("Time Stamp: "+poll_download.getTTR());
                                 updateFileInfosDownload(poll_download);
                                 System.out.println("Downloads Inventory Updated with Consistency state and Version Number...");
 
@@ -1000,6 +1034,22 @@ public class Peer_New {
                                         System.out.println("File Successfully Downloaded.");
 
                                         //nextSearchRequest();
+                                        //TODO
+                                        if (pullFlag) {
+                                            System.out.println("1 Minute Timer has started, please wait...");
+                                            long startTime = System.currentTimeMillis();
+                                            long elapsedTime = 0L;
+
+                                            while (elapsedTime < 1 * 60 * 1000){
+                                                elapsedTime = (new Date()).getTime() - startTime;
+                                                //System.out.println(elapsedTime);
+                                            }
+                                            System.out.println("1 Min Over.");
+
+                                            updateFileInfosDownloadTTR(poll_download.getFileName());
+
+                                            System.out.println("Consistency state of "+poll_download.getFileName()+" set to 'TTR EXPIRED'. ");
+                                        }
 
                                     } catch (IOException e) {
                                     }
@@ -1014,6 +1064,9 @@ public class Peer_New {
                         }
 
                         break;
+
+
+
                     }
 
 
@@ -1027,12 +1080,23 @@ public class Peer_New {
 
         }
 
+        private void updateFileInfosDownloadTTR(String fileName) {
+            for(int i=0; i<fileInfosDownloads.size(); i++){
+                FileInfo fileInfo = fileInfosDownloads.get(i);
+                if(fileInfo.getFileName().equals(fileName)){
+                    fileInfosDownloads.get(i).setConsistencyState("TTR EXPIRED");
+                }
+
+            }
+        }
+
         private void updateFileInfosDownload(Poll poll_download) {
             for (int i=0; i<fileInfosDownloads.size(); i++){
                 FileInfo fileInfo = fileInfosDownloads.get(i);
                 if(fileInfo.getFileName().equals(poll_download.getFileName())){
                     fileInfosDownloads.get(i).setConsistencyState(poll_download.getConsistencyState());
                     fileInfosDownloads.get(i).setVersionNumber_2(poll_download.getVersionNumber());
+                    fileInfosDownloads.get(i).setTTR(poll_download.getTTR());
                 }
             }
         }
