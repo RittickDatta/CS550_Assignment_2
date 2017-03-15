@@ -400,7 +400,7 @@ public class Peer_New {
                             FileInfo fileInfo = fileInfosOrigin.get(j);
                             if (fileInfo.getFileName().equals(poll_Object.getFileName())){
                                 if(fileInfo.getVersionNumber() > poll_Object.getVersionNumber()){
-                                    poll_Object.setConsistencyState("INVALID");//TODO
+                                    poll_Object.setConsistencyState("INVALID");
                                     outputStream.flush();
                                     outputStream.writeObject(poll_Object);
                                     outputStream.flush();
@@ -420,6 +420,26 @@ public class Peer_New {
                                 outputStream.writeObject(poll_Object);
                                 outputStream.flush();
                                 break;
+                            }
+                        }
+                    }
+                    if(poll_Object.getType().equals("TTR")){ //TODO
+                        for(int i=0; i<fileInfosOrigin.size(); i++){
+                            FileInfo fileInfo = fileInfosOrigin.get(i);
+                            if(fileInfo.getFileName().equals(poll_Object.getFileName())){
+                                if(fileInfo.getVersionNumber() > poll_Object.getVersionNumber()){
+                                    poll_Object.setTTR_Message("Local File is Stale.");
+                                    outputStream.flush();
+                                    outputStream.writeObject(poll_Object);
+                                    outputStream.flush();
+                                    break;
+                                }else{
+                                    poll_Object.setTTR_Message("Local File is Up-to-Date.");
+                                    outputStream.flush();
+                                    outputStream.writeObject(poll_Object);
+                                    outputStream.flush();
+                                    break;
+                                }
                             }
                         }
                     }
@@ -851,7 +871,7 @@ public class Peer_New {
                                 ObjectInputPoll = new ObjectInputStream(socket.getInputStream());
 
                                 ObjectOutputPoll.flush();
-                                ObjectOutputPoll.writeObject(poll);  //TODO
+                                ObjectOutputPoll.writeObject(poll);
                                 ObjectOutputPoll.flush();
 
 
@@ -985,7 +1005,7 @@ public class Peer_New {
                                 Download_Request downloadRequest;
                                 downloadRequest = new Download_Request(fullFilePath, queryHitObj.getFileName());
 
-                                Poll poll = new Poll(queryHitObj.getFileName(), "DOWNLOAD"); //TODO
+                                Poll poll = new Poll(queryHitObj.getFileName(), "DOWNLOAD");
                                 Socket socketDownload = new Socket(ip, Integer.parseInt(port));
                                 ObjectOutputStream outSTreamDownload = new ObjectOutputStream(socketDownload.getOutputStream());
                                 outSTreamDownload.writeObject(poll);
@@ -997,7 +1017,7 @@ public class Peer_New {
                                 System.out.println("Consistency State: "+poll_download.getConsistencyState());
                                 System.out.println("Version Number: "+poll_download.getVersionNumber());
                                 System.out.println("Time Stamp: "+poll_download.getTTR());
-                                updateFileInfosDownload(poll_download);
+                                updateFileInfosDownload(poll_download, ip, Integer.parseInt(port));
                                 System.out.println("Downloads Inventory Updated with Consistency state and Version Number...");
 
                                 System.out.println("Contacting Peer To Download File...");
@@ -1034,21 +1054,88 @@ public class Peer_New {
                                         System.out.println("File Successfully Downloaded.");
 
                                         //nextSearchRequest();
-                                        //TODO
+
                                         if (pullFlag) {
                                             System.out.println("1 Minute Timer has started, please wait...");
-                                            long startTime = System.currentTimeMillis();
+                                            /*long startTime = System.currentTimeMillis();
                                             long elapsedTime = 0L;
 
                                             while (elapsedTime < 1 * 60 * 1000){
                                                 elapsedTime = (new Date()).getTime() - startTime;
                                                 //System.out.println(elapsedTime);
-                                            }
+                                            }*/
                                             System.out.println("1 Min Over.");
 
                                             updateFileInfosDownloadTTR(poll_download.getFileName());
 
                                             System.out.println("Consistency state of "+poll_download.getFileName()+" set to 'TTR EXPIRED'. ");
+
+                                            System.out.println("Next, I will poll origin server for files with consistency state = 'TTR Expired'.");
+                                            ArrayList<FileInfo> ttrExpiredFiles = checkDownloadsFileInventory();
+
+                                            //fileInfo has origin server ID, poll origin server TODO
+                                            for(int i=0; i<ttrExpiredFiles.size(); i++){
+                                                FileInfo fileInfo = ttrExpiredFiles.get(i);
+                                                String IP = fileInfo.getIp();
+                                                Integer Port = fileInfo.getPort();
+                                                Socket socketTTR = new Socket(IP, Port);
+                                                ObjectOutputStream outputTtr = new ObjectOutputStream(socketTTR.getOutputStream());
+                                                ObjectInputStream inputTtr = new ObjectInputStream(socketTTR.getInputStream());
+                                                Poll poll_ttr = new Poll(fileInfo.getFileName(), fileInfo.getConsistencyState(), fileInfo.getVersionNumber(), "TTR");
+
+                                                outputTtr.flush();
+                                                outputTtr.writeObject(poll_ttr);
+                                                outputTtr.flush();
+
+                                                Poll poll_ttr_updated = (Poll) inputTtr.readObject();
+                                                System.out.println(poll_ttr_updated.getTTR_Message());
+                                                if(poll_ttr_updated.getTTR_Message().equals("Local File is Stale.")){
+                                                    //DOWNLOAD FILE
+                                                    System.out.println("Do you want to download file?");
+                                                    userChoice = userInput2.readLine();
+                                                    if (userChoice.equals("y")) {
+                                                        Download_Request downloadRequest_Update;
+                                                        downloadRequest_Update = new Download_Request(fullFilePath, queryHitObj.getFileName());
+
+                                                        System.out.println("Contacting Peer To Download File...");
+                                                        Socket socketForPeer1 = new Socket(ip, Integer.parseInt(port));
+                                                        ObjectOutputStream outputStream2 = new ObjectOutputStream(socketForPeer1.getOutputStream());
+                                                        outputStream2.writeObject(downloadRequest);
+                                                        outputStream2.flush();
+
+                                                        BufferedReader socketPeerInput2 = new BufferedReader(new InputStreamReader(socketForPeer.getInputStream()));
+
+                                                        byteArray = new byte[1];
+                                                        input = socketForPeer1.getInputStream();
+                                                        byteOutputStream = new ByteArrayOutputStream();
+
+                                                        if(input != null){
+                                                            bufferedOStream = null;
+                                                            try {
+                                                                bufferedOStream = new BufferedOutputStream(new FileOutputStream("Node" + peerID + "/Downloads/" + queryHitObj.getFileName()));
+                                                                bytesRead = input.read(byteArray, 0, byteArray.length);
+
+                                                                do {
+                                                                    byteOutputStream.write(byteArray, 0, byteArray.length);
+                                                                    bytesRead = input.read(byteArray);
+                                                                } while (bytesRead != -1);
+
+                                                                bufferedOStream.write(byteOutputStream.toByteArray());
+                                                                bufferedOStream.flush();
+
+                                                                System.out.println("File Successfully Downloaded.");
+
+                                                            }catch (IOException e){
+                                                            }
+
+                                                        }
+                                                    }else {
+                                                        System.out.println(poll_ttr_updated.getFileName()+" is stale.");
+                                                    }
+
+
+                                                }
+                                            }
                                         }
 
                                     } catch (IOException e) {
@@ -1080,6 +1167,19 @@ public class Peer_New {
 
         }
 
+        private ArrayList<FileInfo> checkDownloadsFileInventory() {
+            ArrayList<FileInfo> invalidFiles = new ArrayList<>();
+
+            for(int j=0; j<fileInfosDownloads.size(); j++){
+                FileInfo fileInfo = fileInfosDownloads.get(j);
+                if(fileInfo.getConsistencyState().equals("TTR EXPIRED")){
+                    invalidFiles.add(fileInfo);
+                }
+            }
+
+            return invalidFiles;
+        }
+
         private void updateFileInfosDownloadTTR(String fileName) {
             for(int i=0; i<fileInfosDownloads.size(); i++){
                 FileInfo fileInfo = fileInfosDownloads.get(i);
@@ -1090,13 +1190,15 @@ public class Peer_New {
             }
         }
 
-        private void updateFileInfosDownload(Poll poll_download) {
+        private void updateFileInfosDownload(Poll poll_download, String ip, Integer port) {
             for (int i=0; i<fileInfosDownloads.size(); i++){
                 FileInfo fileInfo = fileInfosDownloads.get(i);
                 if(fileInfo.getFileName().equals(poll_download.getFileName())){
                     fileInfosDownloads.get(i).setConsistencyState(poll_download.getConsistencyState());
                     fileInfosDownloads.get(i).setVersionNumber_2(poll_download.getVersionNumber());
                     fileInfosDownloads.get(i).setTTR(poll_download.getTTR());
+                    fileInfosDownloads.get(i).setIp(ip);
+                    fileInfosDownloads.get(i).setPort(port);
                 }
             }
         }

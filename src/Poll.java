@@ -11,6 +11,7 @@ public class Poll implements Serializable{
     private Integer versionNumber;
     private String type;
     private Date TTR;
+    private String TTR_Message;
 
     public Poll(String fileName, String consistencyState, Integer versionNumber, String type) {
         this.fileName = fileName;
@@ -23,6 +24,7 @@ public class Poll implements Serializable{
         this.fileName = fileName;
         this.type = type;
     }
+
 
     public String getFileName() {
         return fileName;
@@ -54,5 +56,13 @@ public class Poll implements Serializable{
 
     public void setTTR(Date TTR) {
         this.TTR = TTR;
+    }
+
+    public void setTTR_Message(String TTR_Message) {
+        this.TTR_Message = TTR_Message;
+    }
+
+    public String getTTR_Message() {
+        return TTR_Message;
     }
 }

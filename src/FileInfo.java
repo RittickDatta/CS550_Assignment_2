@@ -10,6 +10,8 @@ public class FileInfo {
     private Integer originServerID;
     private File fileObject;
     private Date TTR;
+    private String ip;
+    private Integer port;
 
     //For Downloaded Files ONLY
     private String consistencyState; // Valid, Invalid or TTR Expired
@@ -47,6 +49,14 @@ public class FileInfo {
         return TTR;
     }
 
+    public String getIp() {
+        return ip;
+    }
+
+    public Integer getPort() {
+        return port;
+    }
+
     //------Setters---
 
 
@@ -68,5 +78,13 @@ public class FileInfo {
 
     public void setTTR(Date TTR) {
         this.TTR = TTR;
+    }
+
+    public void setIp(String ip) {
+        this.ip = ip;
+    }
+
+    public void setPort(Integer port) {
+        this.port = port;
     }
 }
